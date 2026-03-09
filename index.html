@@ -12,7 +12,7 @@ margin:0;
 background:#f3f3f3;
 }
 
-/* FAKE DOCUMENT */
+/* Fake document */
 
 .page{
 width:800px;
@@ -28,7 +28,7 @@ font-size:12px;
 margin-top:40px;
 }
 
-/* HUB */
+/* Hub layout */
 
 #hub{
 display:none;
@@ -40,8 +40,9 @@ width:200px;
 background:#2f2f2f;
 color:white;
 padding:20px;
-float:left;
-height:100%;
+position:fixed;
+top:0;
+bottom:0;
 }
 
 .sidebar button{
@@ -55,20 +56,20 @@ cursor:pointer;
 }
 
 .content{
-margin-left:200px;
+margin-left:220px;
 padding:20px;
-height:100%;
 }
 
-/* DOCUMENT EDITOR */
+/* Document editor */
 
 #editor{
 border:1px solid #ccc;
 padding:20px;
 min-height:300px;
+background:white;
 }
 
-/* YOUTUBE */
+/* YouTube */
 
 iframe{
 width:800px;
@@ -82,7 +83,7 @@ margin-top:20px;
 
 <body>
 
-<!-- NORMAL DOCUMENT -->
+<!-- Normal looking document -->
 
 <div id="documentView" class="page">
 
@@ -103,7 +104,8 @@ Page 1 | Word Count: <span id="wordCount">1342</span>
 
 </div>
 
-<!-- HUB -->
+
+<!-- Hidden hub -->
 
 <div id="hub">
 
@@ -114,13 +116,10 @@ Page 1 | Word Count: <span id="wordCount">1342</span>
 
 </div>
 
-<div class="content" id="content">
-
-Welcome
+<div class="content" id="content"></div>
 
 </div>
 
-</div>
 
 <script>
 
@@ -138,20 +137,30 @@ if(input === mainCode){
 document.getElementById("documentView").style.display="none"
 document.getElementById("hub").style.display="block"
 
+showDoc()   // loads document first
+
 }
 else if(input !== null){
+
 alert("Incorrect")
+
 }
 
 }
+
 
 /* SECRET SHORTCUT */
 
 document.addEventListener("keydown",function(e){
-if(e.ctrlKey && e.shiftKey && e.key==="E"){
+
+if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==="e"){
+
 askPassword()
+
 }
+
 })
+
 
 /* WORD COUNT SECRET */
 
@@ -160,47 +169,47 @@ document.getElementById("wordCount").onclick=function(){
 clickCount++
 
 if(clickCount>=5){
+
 clickCount=0
 askPassword()
+
 }
 
 }
+
 
 /* DOCUMENT PAGE */
 
 function showDoc(){
 
-document.getElementById("content").innerHTML=`
-
+document.getElementById("content").innerHTML = `
 <button onclick="unlockEdit()">Edit</button>
 
 <div id="editor" contenteditable="false">
 
 <h2>Notes</h2>
 
-<p>
-Write whatever you want here.
-</p>
+<p>Write whatever you want here.</p>
 
 </div>
-
 `
 
 }
+
 
 /* EDIT LOCK */
 
 function unlockEdit(){
 
-let code=prompt("Enter edit code")
+let code = prompt("Enter edit code")
 
-if(code==="1219"){
+if(code === "1219"){
 
-document.getElementById("editor").contentEditable=true
+document.getElementById("editor").contentEditable = true
 alert("Editing enabled")
 
 }
-else if(code!==null){
+else if(code !== null){
 
 alert("Wrong code")
 
@@ -208,11 +217,12 @@ alert("Wrong code")
 
 }
 
+
 /* YOUTUBE PAGE */
 
 function showYT(){
 
-document.getElementById("content").innerHTML=`
+document.getElementById("content").innerHTML = `
 
 <h2>YouTube Embed</h2>
 
@@ -227,18 +237,24 @@ document.getElementById("content").innerHTML=`
 
 }
 
+
 function embedYT(){
 
-let url=document.getElementById("ytlink").value
+let url = document.getElementById("ytlink").value
 
-let id=url.split("v=")[1]
+let id = ""
 
-if(id){
-id=id.split("&")[0]
+if(url.includes("watch?v=")){
+id = url.split("watch?v=")[1].split("&")[0]
+}
+else if(url.includes("youtu.be/")){
+id = url.split("youtu.be/")[1].split("?")[0]
 }
 
-document.getElementById("player").src=
-"https://www.youtube.com/embed/"+id
+if(id){
+document.getElementById("player").src =
+"https://www.youtube.com/embed/" + id
+}
 
 }
 
