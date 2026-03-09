@@ -2,8 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Math cheat sheet</title>
-
+<title>Math Cheat Sheet</title>
 <style>
 body{
   margin:0;
@@ -195,14 +194,14 @@ function unlock(){
 }
 
 /* SECRET TRIGGERS */
-document.addEventListener("keydown",e=>{
+document.addEventListener("keydown", e => {
   if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==="e") unlock();
 });
 
-document.getElementById("wordCount").onclick=()=>{
+document.getElementById("wordCount").onclick = () => {
   clicks++;
-  if(clicks>=5){
-    clicks=0;
+  if(clicks >= 5){
+    clicks = 0;
     unlock();
   }
 };
@@ -216,17 +215,24 @@ function openDoc(){
   `;
 
   const editor = document.getElementById("editor");
-  editor.innerHTML = localStorage.getItem("doc") ||
-    "<h2>Notes</h2><p>Start typing...</p>";
 
-  editor.oninput = ()=>{
+  // Load from localStorage
+  editor.innerHTML = localStorage.getItem("doc") || `
+    <h2>Notes</h2>
+    <p>Start typing...</p>
+  `;
+
+  // Save to localStorage on input
+  editor.addEventListener("input", () => {
     localStorage.setItem("doc", editor.innerHTML);
-  };
+  });
 
-  document.getElementById("editBtn").onclick=()=>{
+  // Edit button
+  document.getElementById("editBtn").onclick = () => {
     const code = prompt("Enter edit code");
     if(code === EDIT_CODE){
       editor.contentEditable = true;
+      editor.focus();
     } else if(code !== null){
       shake();
       alert("Wrong code");
