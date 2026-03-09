@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>Research Notes</title>
 
 <style>
 body{
-  font-family: Arial, sans-serif;
-  background:#f5f5f5;
+  font-family: Arial;
+  background:#f3f3f3;
   margin:0;
 }
 
@@ -19,14 +19,10 @@ body{
   box-shadow:0 0 10px rgba(0,0,0,0.2);
 }
 
-h1{
-  font-size:28px;
-}
-
 .footer{
-  margin-top:40px;
-  font-size:12px;
   color:gray;
+  font-size:12px;
+  margin-top:40px;
 }
 </style>
 </head>
@@ -34,51 +30,67 @@ h1{
 <body>
 
 <div class="page">
+
 <h1>Science Research Notes</h1>
 
 <p>
-This document contains research notes and draft material.
+These are draft notes for upcoming research topics and ideas.
 </p>
 
 <p>
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-Vestibulum accumsan nisl sit amet justo vulputate, nec 
-convallis elit bibendum.
+Science homework - Physics pg - 4293
+Question: What type of energy is stored in a stretched rubber band?
+Answer: Elastic potential energy
+Question: A moving car is travelling down the road. What type of energy does it have because it is moving?
+Answer: Kinetic energy
+Question: What energy transformation happens when a light bulb is turned on?
+Answer: Electrical energy is transformed into light energy (and some heat energy)
+Question: Which type of energy is stored in food that our bodies use?
+Answer: Chemical energy
+Question: A book is sitting on a high shelf. What type of energy does it have because of its position?
+Answer: Gravitational potential energy
 </p>
 
 <div class="footer">
-Page 1 of 3 | Word Count: <span id="wordCount">1284</span>
+Page 1 | Word Count: <span id="wordCount">1342</span>
 </div>
+
 </div>
 
 <script>
 
-const password = "1234"; 
-let clickCount = 0;
+const password = "4293"
+let clickCount = 0
 
 function askPassword(){
-  let input = prompt("Enter password:");
 
-  if(input === password){
-    window.location.href = "success.html";
-  } else if(input !== null){
-    alert("Wrong password");
-  }
+let input = prompt("Enter code")
+
+if(input === password){
+window.location.href = "hub.html"
+}
+else if(input !== null){
+alert("Incorrect")
 }
 
-document.addEventListener("keydown", function(e){
-  if(e.ctrlKey && e.shiftKey && e.key === "E"){
-    askPassword();
-  }
-});
+}
 
-document.getElementById("wordCount").addEventListener("click", function(){
-  clickCount++;
-  if(clickCount >= 5){
-    clickCount = 0;
-    askPassword();
-  }
-});
+document.addEventListener("keydown",function(e){
+if(e.ctrlKey && e.shiftKey && e.key === "E"){
+askPassword()
+}
+})
+
+document.getElementById("wordCount").onclick = function(){
+
+clickCount++
+
+if(clickCount >= 5){
+clickCount = 0
+askPassword()
+}
+
+}
 
 </script>
 
