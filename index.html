@@ -2,263 +2,146 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Research Notes</title>
-
+<title>Workspace</title>
 <style>
+/* GENERAL */
+body{font-family:Arial,sans-serif;margin:0;background:#f2f2f2;transition:all 0.2s;}
+button{cursor:pointer;border:none;border-radius:4px;}
+input{padding:8px;width:400px;border:1px solid #ccc;border-radius:4px;}
 
-body{
-font-family:Arial;
-margin:0;
-background:#f3f3f3;
-}
+/* SHAKE EFFECT */
+@keyframes shake{0%{transform:translateX(0);}25%{transform:translateX(-6px);}50%{transform:translateX(6px);}75%{transform:translateX(-6px);}100%{transform:translateX(0);}}
+.shake{animation:shake 0.3s;}
 
-/* Fake document */
+/* DOCUMENT VIEW */
+#documentView{width:800px;background:white;margin:60px auto;padding:60px;box-shadow:0 4px 15px rgba(0,0,0,0.2);line-height:1.6;}
+.footer{color:gray;font-size:12px;margin-top:40px;}
 
-.page{
-width:800px;
-background:white;
-margin:40px auto;
-padding:60px;
-box-shadow:0 0 10px rgba(0,0,0,0.2);
-}
+/* HUB */
+#hub{display:none;height:100vh;}
+.sidebar{width:220px;background:#2b2b2b;color:white;padding:20px;position:fixed;top:0;bottom:0;}
+.sidebar h2{margin-top:0;font-size:18px;}
+.sidebar button{width:100%;margin-bottom:10px;padding:10px;background:#3c3c3c;color:white;}
+.sidebar button:hover{background:#555;}
+.content{margin-left:240px;padding:40px;}
 
-.footer{
-color:gray;
-font-size:12px;
-margin-top:40px;
-}
+/* DOCUMENT EDITOR */
+#editor{border:1px solid #ccc;padding:20px;min-height:350px;background:white;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
 
-/* Hub layout */
-
-#hub{
-display:none;
-height:100vh;
-}
-
-.sidebar{
-width:200px;
-background:#2f2f2f;
-color:white;
-padding:20px;
-position:fixed;
-top:0;
-bottom:0;
-}
-
-.sidebar button{
-width:100%;
-margin-bottom:10px;
-padding:10px;
-border:none;
-background:#444;
-color:white;
-cursor:pointer;
-}
-
-.content{
-margin-left:220px;
-padding:20px;
-}
-
-/* Document editor */
-
-#editor{
-border:1px solid #ccc;
-padding:20px;
-min-height:300px;
-background:white;
-}
-
-/* YouTube */
-
-iframe{
-width:800px;
-height:450px;
-border:none;
-margin-top:20px;
-}
-
+/* YOUTUBE */
+iframe{margin-top:20px;width:800px;height:450px;border:none;}
 </style>
 </head>
-
 <body>
 
-<!-- Normal looking document -->
-
-<div id="documentView" class="page">
-
+<!-- Normal-looking document -->
+<div id="documentView">
 <h1>Science Research Notes</h1>
-
-<p>
-These are draft notes for upcoming research topics and ideas.
-</p>
-
-<p>
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-Suspendisse potenti. Pellentesque habitant morbi tristique.
-</p>
-
-<div class="footer">
-Page 1 | Word Count: <span id="wordCount">1342</span>
+<p>These are draft notes for upcoming research topics and ideas.</p>
+<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse potenti. Pellentesque habitant morbi tristique.</p>
+<div class="footer">Page 1 | Word Count: <span id="wordCount">1342</span></div>
 </div>
 
-</div>
-
-
-<!-- Hidden hub -->
-
+<!-- HUB -->
 <div id="hub">
-
 <div class="sidebar">
-
+<h2>Workspace</h2>
 <button onclick="showDoc()">Document</button>
 <button onclick="showYT()">YouTube</button>
-
+<button onclick="showGames()">Games</button>
 </div>
-
-<div class="content" id="content"></div>
-
+<div class="content" id="content">Welcome! Select a section from the sidebar.</div>
 </div>
-
 
 <script>
+// PASSWORDS
+const MAIN_CODE = "4293";
+const EDIT_CODE = "1219";
+let clickCount = 0;
 
-/* MAIN PASSWORD */
+// SHAKE FUNCTION
+function shakePage(){
+  document.body.classList.add("shake");
+  setTimeout(()=>{document.body.classList.remove("shake");},300);
+}
 
-const mainCode = "4293"
-let clickCount = 0
-
+// MAIN PASSWORD PROMPT
 function askPassword(){
-
-let input = prompt("Enter code")
-
-if(input === mainCode){
-
-document.getElementById("documentView").style.display="none"
-document.getElementById("hub").style.display="block"
-
-showDoc()   // loads document first
-
-}
-else if(input !== null){
-
-alert("Incorrect")
-
+  let input = prompt("Enter code");
+  if(input === MAIN_CODE){
+    document.getElementById("documentView").style.display="none";
+    document.getElementById("hub").style.display="block";
+    showDoc();
+  } else if(input!==null){
+    shakePage();
+    alert("Incorrect code");
+  }
 }
 
-}
-
-
-/* SECRET SHORTCUT */
-
+// SECRET SHORTCUT
 document.addEventListener("keydown",function(e){
+  if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==="e"){
+    askPassword();
+  }
+});
 
-if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==="e"){
-
-askPassword()
-
-}
-
-})
-
-
-/* WORD COUNT SECRET */
-
+// WORD COUNT SECRET
 document.getElementById("wordCount").onclick=function(){
-
-clickCount++
-
-if(clickCount>=5){
-
-clickCount=0
-askPassword()
-
+  clickCount++;
+  if(clickCount>=5){
+    clickCount=0;
+    askPassword();
+  }
 }
 
-}
-
-
-/* DOCUMENT PAGE */
-
+// DOCUMENT PAGE
 function showDoc(){
-
-document.getElementById("content").innerHTML = `
-<button onclick="unlockEdit()">Edit</button>
-
-<div id="editor" contenteditable="false">
-
-<h2>Notes</h2>
-
-<p>Write whatever you want here.</p>
-
-</div>
-`
-
+  document.getElementById("content").innerHTML = `
+    <button id="editBtn">Edit</button>
+    <div id="editor" contenteditable="false"></div>
+  `;
+  const editor = document.getElementById("editor");
+  const saved = localStorage.getItem("docContent");
+  if(saved){editor.innerHTML = saved;}
+  else{editor.innerHTML="<h2>Notes</h2><p>Write whatever you want here.</p>";}
+  editor.addEventListener("input",()=>{localStorage.setItem("docContent",editor.innerHTML);});
+  document.getElementById("editBtn").onclick = ()=>{
+    const code = prompt("Enter edit code");
+    if(code===EDIT_CODE){
+      editor.contentEditable = true;
+      alert("Editing enabled");
+    } else if(code!==null){
+      shakePage();
+      alert("Wrong code");
+    }
+  };
 }
 
-
-/* EDIT LOCK */
-
-function unlockEdit(){
-
-let code = prompt("Enter edit code")
-
-if(code === "1219"){
-
-document.getElementById("editor").contentEditable = true
-alert("Editing enabled")
-
-}
-else if(code !== null){
-
-alert("Wrong code")
-
-}
-
-}
-
-
-/* YOUTUBE PAGE */
-
+// YOUTUBE PAGE
 function showYT(){
-
-document.getElementById("content").innerHTML = `
-
-<h2>YouTube Embed</h2>
-
-<input id="ytlink" placeholder="Paste YouTube link" style="width:400px;padding:8px;">
-<button onclick="embedYT()">Embed</button>
-
-<br>
-
-<iframe id="player"></iframe>
-
-`
-
+  document.getElementById("content").innerHTML=`
+    <h2>YouTube Embed</h2>
+    <input id="ytlink" placeholder="Paste YouTube link here">
+    <button onclick="embedYT()">Embed</button>
+    <br>
+    <iframe id="player"></iframe>
+  `;
 }
-
-
 function embedYT(){
-
-let url = document.getElementById("ytlink").value
-
-let id = ""
-
-if(url.includes("watch?v=")){
-id = url.split("watch?v=")[1].split("&")[0]
-}
-else if(url.includes("youtu.be/")){
-id = url.split("youtu.be/")[1].split("?")[0]
+  let url=document.getElementById("ytlink").value;
+  let id="";
+  if(url.includes("watch?v=")){id=url.split("watch?v=")[1].split("&")[0];}
+  else if(url.includes("youtu.be/")){id=url.split("youtu.be/")[1].split("?")[0];}
+  if(id){document.getElementById("player").src="https://www.youtube.com/embed/"+id;}
 }
 
-if(id){
-document.getElementById("player").src =
-"https://www.youtube.com/embed/" + id
+// GAMES PAGE
+function showGames(){
+  document.getElementById("content").innerHTML=`
+    <h2>Games</h2>
+    <p>PASTE HTML CODE HERE</p>
+  `;
 }
-
-}
-
 </script>
-
 </body>
 </html>
