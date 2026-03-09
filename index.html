@@ -1,13 +1,125 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>My Website</title>
+<title>Science Homework</title>
+
+<style>
+
+body{
+    background:#d9d9d9;
+    font-family:Calibri, Arial;
+}
+
+.doc{
+    background:white;
+    width:700px;
+    margin:auto;
+    padding:40px;
+    box-shadow:0px 0px 10px rgba(0,0,0,0.2);
+}
+
+.toolbar{
+    display:flex;
+    justify-content:flex-end;
+    margin-bottom:20px;
+}
+
+button{
+    padding:8px 14px;
+    font-size:14px;
+    cursor:pointer;
+}
+
+.enter{
+    margin-top:200px;
+    text-align:center;
+}
+
+.lockScreen{
+    display:none;
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:#111;
+    color:white;
+    text-align:center;
+    padding-top:200px;
+}
+
+input{
+    padding:10px;
+    font-size:16px;
+}
+
+</style>
 </head>
 
 <body>
 
-<h1>Hello!</h1>
-<p>This is my GitHub website.</p>
+<div class="doc">
+
+<div class="toolbar">
+<button>Edit</button>
+</div>
+
+<h1>Year 8 Science Homework</h1>
+
+<p>
+This document explains the structure of plant cells and how they differ from animal cells.
+Plant cells contain chloroplasts which allow them to perform photosynthesis and produce energy from sunlight.
+</p>
+
+<p>
+Photosynthesis occurs mainly in the leaves of plants and requires sunlight, carbon dioxide, and water.
+The chlorophyll inside chloroplasts absorbs light energy which is used to produce glucose and oxygen.
+</p>
+
+<p>
+Animal cells do not contain chloroplasts because animals obtain their energy by consuming food rather than producing it.
+</p>
+
+<div class="enter">
+<button onclick="openLock()">Enter</button>
+</div>
+
+</div>
+
+
+<div class="lockScreen" id="lock">
+
+<h2>Enter Access Code</h2>
+
+<input id="code" type="password" placeholder="Enter code">
+
+<br><br>
+
+<button onclick="checkCode()">Unlock</button>
+
+<p id="result"></p>
+
+</div>
+
+
+<script>
+
+function openLock(){
+    document.getElementById("lock").style.display="block";
+}
+
+function checkCode(){
+    var code=document.getElementById("code").value;
+
+    if(code=="4293"){
+        document.getElementById("result").innerText="Success";
+    }
+    else{
+        document.getElementById("result").innerText="Wrong code";
+    }
+}
+
+</script>
 
 </body>
 </html>
