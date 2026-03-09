@@ -135,11 +135,13 @@ function embedYT(){
   if(id){document.getElementById("player").src="https://www.youtube.com/embed/"+id;}
 }
 
-// GAMES PAGE
+// GAMES PAGE (ONLY LOADS WHEN SELECTED)
 function showGames(){
   document.getElementById("content").innerHTML=`
     <h2>Games</h2>
-    <p><!DOCTYPE html>
+    <div id="gameContainer">
+      <!-- Your game HTML goes here -->
+      <!DOCTYPE html>
 <html lang="en">
     <head>
         <base href="https://cdn.jsdelivr.net/gh/gn-math/gn-math-DONTDMCA@main/">
@@ -1791,7 +1793,8 @@ HTMLCanvasElement.prototype.toDataURL = function (...args) {
       navigator.serviceWorker.register(location.protocol + '//' + location.hostname + '/sw.js')
     </script>
 </body>
-</html>            </p>
+</html>            
+    </div>
   `;
 }
 </script>
