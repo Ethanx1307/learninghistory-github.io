@@ -4,18 +4,17 @@
 <title>Science Homework</title>
 
 <style>
-
 body{
-    background:#d9d9d9;
+    background:#d6d6d6;
     font-family:Calibri, Arial;
 }
 
 .doc{
     background:white;
-    width:700px;
-    margin:auto;
-    padding:40px;
-    box-shadow:0px 0px 10px rgba(0,0,0,0.2);
+    width:750px;
+    margin:40px auto;
+    padding:50px;
+    box-shadow:0 0 10px rgba(0,0,0,0.2);
 }
 
 .toolbar{
@@ -25,17 +24,20 @@ body{
 }
 
 button{
-    padding:8px 14px;
-    font-size:14px;
+    padding:6px 12px;
     cursor:pointer;
 }
 
+.editing{
+    border:1px dashed #888;
+}
+
 .enter{
-    margin-top:200px;
+    margin-top:120px;
     text-align:center;
 }
 
-.lockScreen{
+.lock{
     display:none;
     position:fixed;
     top:0;
@@ -49,35 +51,33 @@ button{
 }
 
 input{
-    padding:10px;
+    padding:8px;
     font-size:16px;
 }
-
 </style>
 </head>
 
 <body>
 
-<div class="doc">
+<div class="doc" id="doc">
 
 <div class="toolbar">
-<button>Edit</button>
+<button onclick="editDoc()">Edit</button>
 </div>
 
-<h1>Year 8 Science Homework</h1>
+<h1 contenteditable="false">Year 8 Science Homework</h1>
 
-<p>
-This document explains the structure of plant cells and how they differ from animal cells.
-Plant cells contain chloroplasts which allow them to perform photosynthesis and produce energy from sunlight.
+<p contenteditable="false">
+Plant cells contain chloroplasts which allow them to perform photosynthesis.
+This process converts sunlight, carbon dioxide and water into glucose and oxygen.
 </p>
 
-<p>
-Photosynthesis occurs mainly in the leaves of plants and requires sunlight, carbon dioxide, and water.
-The chlorophyll inside chloroplasts absorbs light energy which is used to produce glucose and oxygen.
+<p contenteditable="false">
+Photosynthesis is essential for plant survival and provides oxygen for animals and humans.
 </p>
 
-<p>
-Animal cells do not contain chloroplasts because animals obtain their energy by consuming food rather than producing it.
+<p contenteditable="false">
+Animal cells differ from plant cells because they do not contain chloroplasts or a rigid cell wall.
 </p>
 
 <div class="enter">
@@ -87,11 +87,11 @@ Animal cells do not contain chloroplasts because animals obtain their energy by 
 </div>
 
 
-<div class="lockScreen" id="lock">
+<div class="lock" id="lockscreen">
 
 <h2>Enter Access Code</h2>
 
-<input id="code" type="password" placeholder="Enter code">
+<input id="code" type="password">
 
 <br><br>
 
@@ -104,17 +104,21 @@ Animal cells do not contain chloroplasts because animals obtain their energy by 
 
 <script>
 
+function editDoc(){
+    let elements = document.querySelectorAll("[contenteditable]");
+    elements.forEach(el => el.contentEditable = "true");
+}
+
 function openLock(){
-    document.getElementById("lock").style.display="block";
+    document.getElementById("lockscreen").style.display="block";
 }
 
 function checkCode(){
-    var code=document.getElementById("code").value;
+    let code = document.getElementById("code").value;
 
     if(code=="4293"){
         document.getElementById("result").innerText="Success";
-    }
-    else{
+    }else{
         document.getElementById("result").innerText="Wrong code";
     }
 }
