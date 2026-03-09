@@ -5,31 +5,86 @@
 <title>Research Notes</title>
 
 <style>
+
 body{
-  font-family: Arial;
-  background:#f3f3f3;
-  margin:0;
+font-family:Arial;
+margin:0;
+background:#f3f3f3;
 }
 
+/* FAKE DOCUMENT */
+
 .page{
-  width:800px;
-  background:white;
-  margin:40px auto;
-  padding:60px;
-  box-shadow:0 0 10px rgba(0,0,0,0.2);
+width:800px;
+background:white;
+margin:40px auto;
+padding:60px;
+box-shadow:0 0 10px rgba(0,0,0,0.2);
 }
 
 .footer{
-  color:gray;
-  font-size:12px;
-  margin-top:40px;
+color:gray;
+font-size:12px;
+margin-top:40px;
 }
+
+/* HUB */
+
+#hub{
+display:none;
+height:100vh;
+}
+
+.sidebar{
+width:200px;
+background:#2f2f2f;
+color:white;
+padding:20px;
+float:left;
+height:100%;
+}
+
+.sidebar button{
+width:100%;
+margin-bottom:10px;
+padding:10px;
+border:none;
+background:#444;
+color:white;
+cursor:pointer;
+}
+
+.content{
+margin-left:200px;
+padding:20px;
+height:100%;
+}
+
+/* DOCUMENT EDITOR */
+
+#editor{
+border:1px solid #ccc;
+padding:20px;
+min-height:300px;
+}
+
+/* YOUTUBE */
+
+iframe{
+width:800px;
+height:450px;
+border:none;
+margin-top:20px;
+}
+
 </style>
 </head>
 
 <body>
 
-<div class="page">
+<!-- NORMAL DOCUMENT -->
+
+<div id="documentView" class="page">
 
 <h1>Science Research Notes</h1>
 
@@ -38,17 +93,8 @@ These are draft notes for upcoming research topics and ideas.
 </p>
 
 <p>
-Science homework - Physics pg - 4293
-Question: What type of energy is stored in a stretched rubber band?
-Answer: Elastic potential energy
-Question: A moving car is travelling down the road. What type of energy does it have because it is moving?
-Answer: Kinetic energy
-Question: What energy transformation happens when a light bulb is turned on?
-Answer: Electrical energy is transformed into light energy (and some heat energy)
-Question: Which type of energy is stored in food that our bodies use?
-Answer: Chemical energy
-Question: A book is sitting on a high shelf. What type of energy does it have because of its position?
-Answer: Gravitational potential energy
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+Suspendisse potenti. Pellentesque habitant morbi tristique.
 </p>
 
 <div class="footer">
@@ -57,17 +103,41 @@ Page 1 | Word Count: <span id="wordCount">1342</span>
 
 </div>
 
+<!-- HUB -->
+
+<div id="hub">
+
+<div class="sidebar">
+
+<button onclick="showDoc()">Document</button>
+<button onclick="showYT()">YouTube</button>
+
+</div>
+
+<div class="content" id="content">
+
+Welcome
+
+</div>
+
+</div>
+
 <script>
 
-const password = "4293"
+/* MAIN PASSWORD */
+
+const mainCode = "4293"
 let clickCount = 0
 
 function askPassword(){
 
 let input = prompt("Enter code")
 
-if(input === password){
-window.location.href = "hub.html"
+if(input === mainCode){
+
+document.getElementById("documentView").style.display="none"
+document.getElementById("hub").style.display="block"
+
 }
 else if(input !== null){
 alert("Incorrect")
@@ -75,20 +145,100 @@ alert("Incorrect")
 
 }
 
+/* SECRET SHORTCUT */
+
 document.addEventListener("keydown",function(e){
-if(e.ctrlKey && e.shiftKey && e.key === "E"){
+if(e.ctrlKey && e.shiftKey && e.key==="E"){
 askPassword()
 }
 })
 
-document.getElementById("wordCount").onclick = function(){
+/* WORD COUNT SECRET */
+
+document.getElementById("wordCount").onclick=function(){
 
 clickCount++
 
-if(clickCount >= 5){
-clickCount = 0
+if(clickCount>=5){
+clickCount=0
 askPassword()
 }
+
+}
+
+/* DOCUMENT PAGE */
+
+function showDoc(){
+
+document.getElementById("content").innerHTML=`
+
+<button onclick="unlockEdit()">Edit</button>
+
+<div id="editor" contenteditable="false">
+
+<h2>Notes</h2>
+
+<p>
+Write whatever you want here.
+</p>
+
+</div>
+
+`
+
+}
+
+/* EDIT LOCK */
+
+function unlockEdit(){
+
+let code=prompt("Enter edit code")
+
+if(code==="1219"){
+
+document.getElementById("editor").contentEditable=true
+alert("Editing enabled")
+
+}
+else if(code!==null){
+
+alert("Wrong code")
+
+}
+
+}
+
+/* YOUTUBE PAGE */
+
+function showYT(){
+
+document.getElementById("content").innerHTML=`
+
+<h2>YouTube Embed</h2>
+
+<input id="ytlink" placeholder="Paste YouTube link" style="width:400px;padding:8px;">
+<button onclick="embedYT()">Embed</button>
+
+<br>
+
+<iframe id="player"></iframe>
+
+`
+
+}
+
+function embedYT(){
+
+let url=document.getElementById("ytlink").value
+
+let id=url.split("v=")[1]
+
+if(id){
+id=id.split("&")[0]
+}
+
+document.getElementById("player").src=
+"https://www.youtube.com/embed/"+id
 
 }
 
