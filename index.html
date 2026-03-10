@@ -6,103 +6,59 @@
 
 <style>
 *{box-sizing:border-box}
-body{
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:#f8fafc;
-  color:#0f172a;
-}
+body{margin:0;font-family:Arial,sans-serif;background:#f8fafc;color:#0f172a}
 
-/* ===== QUIZ ===== */
+/* QUIZ */
 #quiz{
-  max-width:720px;
-  margin:80px auto;
-  background:white;
-  padding:40px;
-  border-radius:12px;
-  box-shadow:0 20px 50px rgba(0,0,0,.15);
-  animation:fadeIn .5s ease;
+  max-width:720px;margin:80px auto;background:white;
+  padding:40px;border-radius:12px;
+  box-shadow:0 20px 50px rgba(0,0,0,.15)
 }
-@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1}}
-
-input,button{
-  padding:10px;
-  font-size:16px;
-  margin-top:10px;
-  border-radius:6px;
-}
-button{cursor:pointer}
-
+input,button{padding:10px;font-size:16px;margin-top:10px;border-radius:6px}
 #feedback{font-weight:bold;margin-top:10px}
 
-/* ===== RESULT ===== */
+/* RESULTS */
 #result,#fakeWin{display:none;text-align:center;margin-top:80px}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:999}
 
-/* ===== APP ===== */
+/* APP */
 #app{display:none}
 .sidebar{
-  width:220px;
-  background:#1e1e2f;
-  padding:20px;
-  position:fixed;
-  top:0;bottom:0;
+  width:220px;background:#1e1e2f;padding:20px;
+  position:fixed;top:0;bottom:0
 }
 .sidebar button{
-  width:100%;
-  margin-bottom:10px;
-  padding:12px;
-  background:#2c2f33;
-  color:white;
-  border:none;
-  border-radius:8px;
+  width:100%;margin-bottom:10px;padding:12px;
+  background:#2c2f33;color:white;border:none;border-radius:8px
 }
 .sidebar button:hover{background:#40444b}
-
 .content{
-  margin-left:240px;
-  padding:40px;
-  background:#0f0f0f;
-  min-height:100vh;
-  color:white;
-  animation:fadeIn .3s ease;
+  margin-left:240px;padding:40px;
+  background:#0f0f0f;min-height:100vh;color:white
 }
-
 #editor,#chatMessages,iframe{
-  background:#1e1e2f;
-  color:white;
+  background:#1e1e2f;color:white;
   border:1px solid #40444b;
-  padding:20px;
-  border-radius:8px;
+  padding:20px;border-radius:8px
 }
-
-.chat-msg{
-  background:#2c2f33;
-  padding:8px;
-  margin-bottom:8px;
-  border-radius:6px;
-}
+.chat-msg{background:#2c2f33;padding:8px;margin-bottom:8px;border-radius:6px}
 .time{font-size:.75em;color:#9ca3af}
 .nick{color:#43b581;font-weight:bold}
 
 /* Proxy */
-.proxy-bar{
-  display:flex;
-  gap:10px;
-  margin-bottom:10px;
-}
+.proxy-bar{display:flex;gap:10px;margin-bottom:10px}
 .proxy-bar input{flex:1}
 </style>
 
-<!-- FIREBASE -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
 firebase.initializeApp({
-  apiKey: "AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
-  authDomain: "learning-history-1bfd5.firebaseapp.com",
-  databaseURL: "https://learning-history-1bfd5-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "learning-history-1bfd5"
+  apiKey:"AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
+  authDomain:"learning-history-1bfd5.firebaseapp.com",
+  databaseURL:"https://learning-history-1bfd5-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"learning-history-1bfd5"
 });
 const db=firebase.database();
 </script>
@@ -110,7 +66,7 @@ const db=firebase.database();
 
 <body>
 
-<!-- ===== QUIZ ===== -->
+<!-- QUIZ -->
 <div id="quiz">
   <h1>Year 8 Maths Quiz</h1>
   <p id="qText"></p>
@@ -121,21 +77,19 @@ const db=firebase.database();
   <p>Question <span id="num"></span>/20</p>
 </div>
 
-<!-- RESULT -->
 <div id="result">
   <h1>Your Score</h1>
   <h2 id="score"></h2>
   <button onclick="location.reload()">Retry</button>
 </div>
 
-<!-- FAKE WIN -->
 <div id="fakeWin">
   <h1>🎉 PERFECT SCORE 🎉</h1>
   <p>You have mastered Year 8 Maths.</p>
   <div id="confetti"></div>
 </div>
 
-<!-- ===== SECRET APP ===== -->
+<!-- SECRET APP -->
 <div id="app">
   <div class="sidebar">
     <button onclick="openDoc()">📄 Document</button>
@@ -148,7 +102,7 @@ const db=firebase.database();
 </div>
 
 <script>
-/* ===== QUIZ ===== */
+/* QUIZ DATA */
 const Q=[
  ["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],
  ["15% of 200","30"],["-5+12","7"],["6²÷3","12"],
@@ -170,32 +124,23 @@ loadQ();
 
 function submit(){
   const a=ans.value.trim().toLowerCase();
-
-  // SECRET
   if(a==="opensesame"||a==="open sesame"){
     quiz.style.display="none";
     app.style.display="block";
     openChat();
     return;
   }
-
   if(a===Q[i][1]){feedback.innerText="Correct!";score++}
   else feedback.innerText="Incorrect.";
-
   i++;
-  if(i<20) setTimeout(loadQ,600);
+  if(i<20)setTimeout(loadQ,600);
   else finish();
 }
 
 function finish(){
   quiz.style.display="none";
-  if(score===20){
-    fakeWin.style.display="block";
-    party();
-  }else{
-    result.style.display="block";
-    score.innerText=`${score} / 20`;
-  }
+  if(score===20){fakeWin.style.display="block";party()}
+  else{result.style.display="block";score.innerText=`${score} / 20`}
 }
 
 /* CONFETTI */
@@ -203,26 +148,46 @@ function party(){
   for(let i=0;i<120;i++){
     const d=document.createElement("div");
     d.style.position="absolute";
-    d.style.width="8px";
-    d.style.height="8px";
+    d.style.width="8px";d.style.height="8px";
     d.style.background=`hsl(${Math.random()*360},90%,60%)`;
     d.style.left=Math.random()*100+"%";
     d.style.top=Math.random()*100+"%";
-    d.style.opacity=Math.random();
     confetti.appendChild(d);
     setTimeout(()=>d.remove(),3000);
   }
 }
 
-/* ===== DOCUMENT ===== */
+/* DOCUMENT (LOCKED) */
 function openDoc(){
-  content.innerHTML=`<h2>Document</h2><div id="editor" contenteditable></div>`;
+  content.innerHTML=`
+    <h2>Document</h2>
+    <button id="unlockBtn">Unlock Editing</button>
+    <div id="editor" contenteditable="false"></div>`;
+  const editor=document.getElementById("editor");
+  const btn=document.getElementById("unlockBtn");
   const ref=db.ref("doc");
-  ref.on("value",s=>editor.innerHTML=s.val()||"");
-  editor.oninput=()=>ref.set(editor.innerHTML);
+
+  ref.on("value",s=>{
+    if(!editor.isContentEditable)
+      editor.innerHTML=s.val()||"";
+  });
+
+  btn.onclick=()=>{
+    if(prompt("Edit code")!=="1219") return alert("Wrong code");
+    editor.contentEditable="true";
+    btn.disabled=true;
+    btn.innerText="Editing Enabled";
+  };
+
+  let t;
+  editor.oninput=()=>{
+    if(!editor.isContentEditable) return;
+    clearTimeout(t);
+    t=setTimeout(()=>ref.set(editor.innerHTML),500);
+  };
 }
 
-/* ===== CHAT ===== */
+/* CHAT */
 function openChat(){
   let nick=localStorage.nick||prompt("Nickname")||"Anon";
   localStorage.nick=nick;
@@ -236,37 +201,37 @@ function openChat(){
   db.ref("chat").off();
   db.ref("chat").on("child_added",s=>{
     const m=s.val();
+    const d=document.createElement("div");
     const dt=new Date(m.t);
     const h=dt.getHours()%12||12;
     const min=dt.getMinutes().toString().padStart(2,"0");
-    const ampm=dt.getHours()>=12?"pm":"am";
-    const d=document.createElement("div");
+    const am=dt.getHours()>=12?"pm":"am";
     d.className="chat-msg";
-    d.innerHTML=`<div class="time">${h}:${min}${ampm}</div><div class="nick">${m.n}</div>${m.m}`;
+    d.innerHTML=`<div class="time">${h}:${min}${am}</div>
+                 <div class="nick">${m.n}</div>${m.m}`;
     chatMessages.appendChild(d);
     chatMessages.scrollTop=chatMessages.scrollHeight;
   });
 
   window.send=()=>{
-    if(Date.now()-last<1000) return alert("Slow down!");
+    if(Date.now()-last<1000)return alert("Slow down!");
     if(msg.value){
       db.ref("chat").push({n:nick,m:msg.value,t:Date.now()});
-      msg.value="";
-      last=Date.now();
+      msg.value="";last=Date.now();
     }
   };
   window.changeNick=()=>{
-    if(prompt("Code")!=="4293") return;
+    if(prompt("Code")!=="4293")return;
     localStorage.nick=prompt("New nickname")||nick;
   };
   window.clearChat=()=>{
-    if(prompt("Code")!=="Ethandagod") return;
+    if(prompt("Code")!=="Ethandagod")return;
     db.ref("chat").remove();
     chatMessages.innerHTML="";
   };
 }
 
-/* ===== YOUTUBE ===== */
+/* YOUTUBE */
 function openYT(){
   content.innerHTML=`
     <input id="y" placeholder="YouTube link">
@@ -274,24 +239,24 @@ function openYT(){
     <iframe id="p" style="width:100%;height:420px"></iframe>`;
 }
 
-/* ===== GAMES ===== */
+/* GAMES */
 function openGames(){window.open("game.html","_blank")}
 
-/* ===== PROXY ===== */
+/* PROXY */
 function openProxy(){
   content.innerHTML=`
     <h2>Research Viewer</h2>
     <div class="proxy-bar">
-      <input id="proxyURL" placeholder="Enter a website URL">
+      <input id="proxyURL" placeholder="Credits to Rammerhead for the proxy">
       <button onclick="loadProxy()">Go</button>
     </div>
     <iframe id="proxyFrame" style="width:100%;height:500px"></iframe>
-    <p style="color:#9ca3af">Some websites may not load due to browser security.</p>`;
+    <p style="color:#9ca3af">Copy and paste this link into your brower and enjoy your proxy: https://rammer.nana.sitjak.ca/</p>`;
 }
 function loadProxy(){
   let u=proxyURL.value.trim();
-  if(!u) return;
-  if(!u.startsWith("http")) u="https://"+u;
+  if(!u)return;
+  if(!u.startsWith("http"))u="https://"+u;
   proxyFrame.src=u;
 }
 </script>
