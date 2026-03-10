@@ -1,80 +1,31 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Learning Hub</title>
 <style>
-body{margin:0;font-family:Arial;background:#0f172a;}
-@keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-6px)}100%{transform:translateX(0)}}
-.shake{animation:shake .3s}
-
-#documentView{
-  width:100vw;height:100vh;background:#f8fafc;
-  display:flex;align-items:center;justify-content:center;
-}
-.docPage{
-  width:800px;background:white;padding:60px;
-  box-shadow:0 15px 40px rgba(0,0,0,.25)
-}
-
-#app{display:none;height:100vh}
-.sidebar{
-  width:220px;background:#020617;color:white;
-  padding:20px;position:fixed;top:0;bottom:0
-}
-.sidebar button{
-  width:100%;margin-bottom:10px;padding:10px;
-  background:#1e293b;color:white;border:none;
-  border-radius:6px;cursor:pointer
-}
-.sidebar button:hover{background:#334155}
-.content{
-  margin-left:240px;padding:40px;
-  background:#f1f5f9;min-height:100vh
-}
-
-#editor,#chatMessages{
-  background:white;border:1px solid #ccc;
-  padding:20px;min-height:300px;
-  overflow-y:auto
-}
-
+body{margin:0;font-family:Arial;background:#0f172a;color:white;}
+.sidebar{width:220px;background:#020617;padding:20px;position:fixed;top:0;bottom:0;}
+.sidebar button{width:100%;margin-bottom:10px;padding:10px;background:#1e293b;color:white;border:none;border-radius:6px;cursor:pointer;}
+.sidebar button:hover{background:#334155;}
+.content{margin-left:240px;padding:40px;background:#1f2937;min-height:100vh;}
+#editor,#chatMessages{background:white;color:black;border:1px solid #ccc;padding:20px;min-height:300px;overflow-y:auto;}
 input,button{padding:8px;margin-top:10px;}
+#documentView{width:100vw;height:100vh;background:#f8fafc;display:flex;align-items:center;justify-content:center;color:black;}
+.docPage{width:800px;background:white;padding:60px;box-shadow:0 15px 40px rgba(0,0,0,.25);}
+.shake{animation:shake .3s;}
+@keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-6px)}100%{transform:translateX(0)}}
 </style>
-</head>
 
-<body>
-
-<!-- LOCK SCREEN -->
-<div id="documentView">
-  <div class="docPage">
-    <h1> Math Notes</h1>
-    <p>Hailstone Numbers: The Collatz conjecture (3x+1) suggests any starting number eventually reaches 1, fluctuating like hailstones.Irrationals: The Greeks believed all numbers were rational until Hippasus discovered the square root of 2 (\(\sqrt{2}\)).Geometry: A cycloid (a dot on a rolling circle) has a length of four times the diameter and an area three times the circle's area.Logarithms: The derivative of \(\ln (ax)\) is the same as \(\ln (x)\), because \(\ln (a)\) is a constant.Calculus: If a function is analytic on a simply connected domain, the integral over any closed curve is 0.Symbolism: The \(\sum \) (sigma) symbol represents the summation (sum) of a sequence</p>
-    <p id="unlockTrigger">Word Count: 1342</p>
-  </div>
-</div>
-
-<!-- APP -->
-<div id="app">
-  <div class="sidebar">
-    <button onclick="openDoc()">📄 Document</button>
-    <button onclick="openChat()">💬 Chat</button>
-    <button onclick="openYT()">▶️ YouTube</button>
-    <button onclick="openGames()">🎮 Games</button>
-  </div>
-  <div class="content" id="content">Welcome</div>
-</div>
-
-<!-- FIREBASE -->
+<!-- Firebase compat scripts -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
 <script>
-/* 🔥 FIREBASE */
+// 🔥 Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
   authDomain: "learning-history-1bfd5.firebaseapp.com",
-  databaseURL: "https://learning-history-1bfd5-default-rtdb.firebaseio.com",
+  databaseURL: "https://learning-history-1bfd5-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "learning-history-1bfd5",
   storageBucket: "learning-history-1bfd5.appspot.com",
   messagingSenderId: "231811778288",
@@ -82,11 +33,34 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+</script>
+</head>
+<body>
 
-/* 🔐 UNLOCK */
+<!-- LOCK SCREEN -->
+<div id="documentView">
+  <div class="docPage">
+    <h1>Welcome to Learning Hub</h1>
+    <p id="unlockTrigger">Click here 5 times to unlock the app</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;">
+  <div class="sidebar">
+    <button onclick="openDoc()">📄 Document</button>
+    <button onclick="openChat()">💬 Chat</button>
+    <button onclick="openYT()">▶️ YouTube</button>
+    <button onclick="openGames()">🎮 Games</button>
+  </div>
+  <div class="content" id="content">Welcome!</div>
+</div>
+
+<script>
+// 🔐 Unlock app
 let clicks=0;
 document.getElementById("unlockTrigger").onclick=()=>{
-  clicks++; 
+  clicks++;
   if(clicks>=5){
     document.getElementById("documentView").style.display="none";
     document.getElementById("app").style.display="block";
@@ -94,31 +68,29 @@ document.getElementById("unlockTrigger").onclick=()=>{
   }
 };
 
-/* 📄 DOCUMENT */
+// 📄 Document editor
 function openDoc(){
   content.innerHTML=`
     <h2>Document</h2>
     <button id="editBtn">Unlock Editing</button>
-    <div id="editor" contenteditable="false"></div>`;
-
+    <div id="editor" contenteditable="false"></div>
+  `;
   const ed = document.getElementById("editor");
   const editBtn = document.getElementById("editBtn");
   const docRef = db.ref("document");
 
-  // Load document content and update in real-time
-  docRef.on("value", snapshot => {
-    const val = snapshot.val();
-    if(val !== null && val !== ed.innerHTML){
-      ed.innerHTML = val;
-    }
+  // Load content live
+  docRef.on("value", snap=>{
+    const val = snap.val();
+    if(val!==null && val!==ed.innerHTML) ed.innerHTML = val;
   });
 
   // Unlock editing
   editBtn.onclick = ()=>{
     const code = prompt("Enter edit code:");
-    if(code === "1219"){
+    if(code==="1219"){
       ed.contentEditable = "true";
-      alert("You can now edit the document!");
+      alert("Editing unlocked!");
     } else {
       alert("Wrong code!");
       editBtn.classList.add("shake");
@@ -126,62 +98,57 @@ function openDoc(){
     }
   };
 
-  // Save changes when user stops typing for 1.5s
+  // Save on stop typing
   let typingTimer;
   ed.addEventListener("input", ()=>{
     if(!ed.isContentEditable) return;
     clearTimeout(typingTimer);
-    typingTimer = setTimeout(()=>{
-      docRef.set(ed.innerHTML);
-    }, 1500);
+    typingTimer = setTimeout(()=>docRef.set(ed.innerHTML || ""),1500);
   });
 }
 
-/* 💬 CHAT */
+// 💬 Chat
 function openChat(){
   let nickname = localStorage.getItem("nickname");
   if(!nickname){
-    nickname = prompt("Enter your nickname:");
-    if(!nickname) nickname = "Anonymous";
+    nickname = prompt("Enter your nickname:")||"Anonymous";
     localStorage.setItem("nickname", nickname);
   }
 
   content.innerHTML=`
     <h2>Chat</h2>
-    <div id="chatMessages" style="max-height:300px; overflow-y:auto; border:1px solid #ccc; padding:10px"></div>
-    <input id="msg" placeholder="Type a message"><button id="sendBtn">Send</button>`;
-
+    <div id="chatMessages"></div>
+    <input id="msg" placeholder="Type a message"><button id="sendBtn">Send</button>
+  `;
   const box = document.getElementById("chatMessages");
   const input = document.getElementById("msg");
   const sendBtn = document.getElementById("sendBtn");
 
-  // Listen for new messages in real-time
-  db.ref("chat").on("child_added", snapshot => {
-    const m = snapshot.val();
+  // Listen for new messages
+  db.ref("chat").on("child_added", snap=>{
+    const m = snap.val();
     const p = document.createElement("p");
     p.innerHTML = `<b>${m.nick}:</b> ${m.msg}`;
     box.appendChild(p);
     box.scrollTop = box.scrollHeight;
   });
 
-  // Send message
-  sendBtn.onclick = () => {
+  // Send messages
+  sendBtn.onclick = ()=>{
     if(input.value.trim()){
-      db.ref("chat").push({nick:nickname, msg:input.value.trim()});
+      db.ref("chat").push({nick:nickname,msg:input.value.trim()});
       input.value="";
     }
   };
-
-  input.addEventListener("keydown", e=>{
-    if(e.key==="Enter") sendBtn.click();
-  });
+  input.addEventListener("keydown", e=>{if(e.key==="Enter") sendBtn.click();});
 }
 
-/* ▶️ YOUTUBE */
+// ▶️ YouTube
 function openYT(){
   content.innerHTML=`
     <input id="yt" placeholder="YouTube URL"><button onclick="embed()">Embed</button>
-    <iframe id="player" style="width:100%;height:400px"></iframe>`;
+    <iframe id="player" style="width:100%;height:400px;"></iframe>
+  `;
 }
 function embed(){
   const u=document.getElementById("yt").value;
@@ -189,7 +156,7 @@ function embed(){
   document.getElementById("player").src="https://www.youtube.com/embed/"+id;
 }
 
-/* 🎮 GAMES */
+// 🎮 Games
 function openGames(){
   window.open("game.html","_blank");
 }
