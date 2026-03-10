@@ -81,8 +81,8 @@ function openDoc(){
 
   // Load content live
   docRef.on("value", snap=>{
-    const val = snap.val();
-    if(val!==null && val!==ed.innerHTML) ed.innerHTML = val;
+    const val = snap.val() || "";
+    if(val!==ed.innerHTML && !ed.isContentEditable) ed.innerHTML = val;
   });
 
   // Unlock editing
@@ -103,44 +103,89 @@ function openDoc(){
   ed.addEventListener("input", ()=>{
     if(!ed.isContentEditable) return;
     clearTimeout(typingTimer);
-    typingTimer = setTimeout(()=>docRef.set(ed.innerHTML || ""),1500);
+    typingTimer = setTimeout(()=>docRef.set(ed.innerHTML || ""), 500);
   });
 }
 
-// 💬 Chat
-function openChat(){
+// 💬 Discord-style Chat
+function openChat() {
   let nickname = localStorage.getItem("nickname");
-  if(!nickname){
-    nickname = prompt("Enter your nickname:")||"Anonymous";
+  if (!nickname) {
+    nickname = prompt("Enter your nickname:") || "Anonymous";
     localStorage.setItem("nickname", nickname);
   }
 
-  content.innerHTML=`
+  content.innerHTML = `
     <h2>Chat</h2>
-    <div id="chatMessages"></div>
-    <input id="msg" placeholder="Type a message"><button id="sendBtn">Send</button>
+    <div style="margin-bottom:10px;">
+      <button id="changeNickBtn">Change Nickname</button>
+      <button id="clearBtn">Clear Chat</button>
+    </div>
+    <div id="chatMessages" style="max-height:400px; overflow-y:auto; border:1px solid #ccc; padding:10px; background:#1e1e2f; color:white;"></div>
+    <input id="msg" placeholder="Type a message" style="width:80%"><button id="sendBtn">Send</button>
   `;
+
   const box = document.getElementById("chatMessages");
   const input = document.getElementById("msg");
   const sendBtn = document.getElementById("sendBtn");
+  const changeNickBtn = document.getElementById("changeNickBtn");
+  const clearBtn = document.getElementById("clearBtn");
 
-  // Listen for new messages
-  db.ref("chat").on("child_added", snap=>{
-    const m = snap.val();
-    const p = document.createElement("p");
-    p.innerHTML = `<b>${m.nick}:</b> ${m.msg}`;
-    box.appendChild(p);
+  let lastSent = 0;
+
+  // Load previous messages once (Discord-style)
+  db.ref("chat").once("value", snap => {
+    const msgs = snap.val() || {};
+    const keys = Object.keys(msgs);
+    keys.forEach(k => {
+      const m = msgs[k];
+      const p = document.createElement("p");
+      p.innerHTML = `<span style="color:#34d399"><b>${m.nick}</b></span> [${m.time}]: ${m.msg}`;
+      p.style.marginBottom="6px";
+      box.appendChild(p);
+    });
     box.scrollTop = box.scrollHeight;
   });
 
-  // Send messages
-  sendBtn.onclick = ()=>{
-    if(input.value.trim()){
-      db.ref("chat").push({nick:nickname,msg:input.value.trim()});
-      input.value="";
+  // Send message with 1-second cooldown
+  sendBtn.onclick = () => {
+    const now = Date.now();
+    if(now - lastSent < 1000){
+      alert("Slow down!");
+      return;
     }
+    if(!input.value.trim()) return;
+    const time = new Date().toLocaleTimeString();
+    db.ref("chat").push({nick:nickname, msg:input.value.trim(), time});
+    input.value="";
+    lastSent = now;
+    // auto-scroll
+    setTimeout(()=>box.scrollTop = box.scrollHeight,50);
   };
   input.addEventListener("keydown", e=>{if(e.key==="Enter") sendBtn.click();});
+
+  // Change nickname
+  changeNickBtn.onclick = ()=>{
+    const code = prompt("Enter code to change nickname:");
+    if(code==="4293"){
+      const newNick = prompt("Enter new nickname:");
+      if(newNick){
+        nickname=newNick;
+        localStorage.setItem("nickname", nickname);
+        alert("Nickname changed!");
+      }
+    } else alert("Wrong code!");
+  };
+
+  // Clear chat (secret code only you know)
+  clearBtn.onclick = ()=>{
+    const code = prompt("Enter secret code to clear chat:");
+    if(code==="Ethandagod"){
+      db.ref("chat").remove();
+      box.innerHTML="";
+      alert("Chat cleared!");
+    }
+  };
 }
 
 // ▶️ YouTube
