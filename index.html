@@ -102,7 +102,25 @@ const db=firebase.database();
 </div>
 
 <script>
-/* QUIZ DATA */
+/* ==== HELPER: FORMAT CHAT TIME LIKE DISCORD ==== */
+function formatTime(ts){
+  const d = new Date(ts);
+  const now = new Date();
+
+  const h = d.getHours() % 12 || 12;
+  const m = d.getMinutes().toString().padStart(2,"0");
+  const ampm = d.getHours() >= 12 ? "pm" : "am";
+
+  const today = now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
+  if(d.toDateString() === today) return `Today at ${h}:${m}${ampm}`;
+  if(d.toDateString() === yesterday.toDateString()) return `Yesterday at ${h}:${m}${ampm}`;
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ampm}`;
+}
+
+/* ==== QUIZ DATA ==== */
 const Q=[
  ["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],
  ["15% of 200","30"],["-5+12","7"],["6²÷3","12"],
@@ -157,7 +175,7 @@ function party(){
   }
 }
 
-/* DOCUMENT (LOCKED) */
+/* ==== DOCUMENT ==== */
 function openDoc(){
   content.innerHTML=`
     <h2>Document</h2>
@@ -187,7 +205,7 @@ function openDoc(){
   };
 }
 
-/* CHAT */
+/* ==== CHAT ==== */
 function openChat(){
   let nick=localStorage.nick||prompt("Nickname")||"Anon";
   localStorage.nick=nick;
@@ -202,15 +220,14 @@ function openChat(){
   db.ref("chat").on("child_added",s=>{
     const m=s.val();
     const d=document.createElement("div");
-    const dt=new Date(m.t);
-    const h=dt.getHours()%12||12;
-    const min=dt.getMinutes().toString().padStart(2,"0");
-    const am=dt.getHours()>=12?"pm":"am";
     d.className="chat-msg";
-    d.innerHTML=`<div class="time">${h}:${min}${am}</div>
-                 <div class="nick">${m.n}</div>${m.m}`;
+    d.innerHTML = `
+      <div class="time">${formatTime(m.t)}</div>
+      <div class="nick">${m.n}</div>
+      ${m.m}
+    `;
     chatMessages.appendChild(d);
-    chatMessages.scrollTop=chatMessages.scrollHeight;
+    chatMessages.scrollTop = chatMessages.scrollHeight;
   });
 
   window.send=()=>{
@@ -231,7 +248,7 @@ function openChat(){
   };
 }
 
-/* YOUTUBE */
+/* ==== YOUTUBE ==== */
 function openYT(){
   content.innerHTML=`
     <input id="y" placeholder="YouTube link">
@@ -239,19 +256,19 @@ function openYT(){
     <iframe id="p" style="width:100%;height:420px"></iframe>`;
 }
 
-/* GAMES */
+/* ==== GAMES ==== */
 function openGames(){window.open("game.html","_blank")}
 
-/* PROXY */
+/* ==== PROXY ==== */
 function openProxy(){
   content.innerHTML=`
     <h2>Research Viewer</h2>
     <div class="proxy-bar">
-      <input id="proxyURL" placeholder="Credits to Rammerhead for the proxy">
+      <input id="proxyURL" placeholder="Credit to Rammerhead for the proxy ↓ ">
       <button onclick="loadProxy()">Go</button>
     </div>
     <iframe id="proxyFrame" style="width:100%;height:500px"></iframe>
-    <p style="color:#9ca3af">Copy and paste this link into your brower and enjoy your proxy: https://rammer.nana.sitjak.ca/</p>`;
+    <p style="color:#9ca3af">Type in https://rammer.nana.sitjak.ca/ for a good proxy.</p>`;
 }
 function loadProxy(){
   let u=proxyURL.value.trim();
