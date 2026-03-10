@@ -4,24 +4,25 @@
 <meta charset="UTF-8">
 <title>Learning Hub</title>
 <style>
-body{margin:0;font-family:Arial,sans-serif;background:#0f172a;color:white;}
-.sidebar{width:220px;background:#020617;padding:20px;position:fixed;top:0;bottom:0;}
-.sidebar button{width:100%;margin-bottom:10px;padding:10px;background:#1e293b;color:white;border:none;border-radius:6px;cursor:pointer;}
-.sidebar button:hover{background:#334155;}
-.content{margin-left:240px;padding:40px;background:#1f2937;min-height:100vh;}
-#editor,#chatMessages{background:white;color:black;border:1px solid #ccc;padding:20px;min-height:300px;overflow-y:auto;border-radius:6px;}
-input,button{padding:8px;margin-top:10px;border-radius:4px;}
+body{margin:0;font-family:Arial,sans-serif;background:#0f0f0f;color:white;}
+.sidebar{width:220px;background:#1e1e2f;padding:20px;position:fixed;top:0;bottom:0;}
+.sidebar button{width:100%;margin-bottom:10px;padding:10px;background:#2c2f33;color:white;border:none;border-radius:6px;cursor:pointer;}
+.sidebar button:hover{background:#40444b;}
+.content{margin-left:240px;padding:40px;background:#0f0f0f;min-height:100vh;color:white;}
+#editor,#chatMessages{background:#1e1e2f;color:white;border:1px solid #40444b;padding:20px;min-height:300px;overflow-y:auto;border-radius:6px;}
+input,button{padding:8px;margin-top:10px;border-radius:4px;background:#2c2f33;color:white;border:none;}
+input::placeholder{color:#b9bbbe;}
 #documentView{width:100vw;height:100vh;background:#f8fafc;display:flex;align-items:center;justify-content:center;color:black;}
 .docPage{width:800px;background:white;padding:60px;box-shadow:0 15px 40px rgba(0,0,0,.25);}
 .shake{animation:shake .3s;}
 @keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-6px)}100%{transform:translateX(0)}}
+
 /* Chat message styling like Discord */
-.chat-msg{margin-bottom:12px; padding:5px 8px; border-radius:6px; background:#2a2a3c;}
-.chat-msg .time{font-size:0.7em; color:#a1a1a1;}
-.chat-msg .nick{color:#34d399; font-weight:bold; margin-top:2px;}
+.chat-msg{margin-bottom:12px;padding:5px 8px;border-radius:6px;background:#2c2f33;}
+.chat-msg .time{font-size:0.7em;color:#72767d;}
+.chat-msg .nick{color:#43b581;font-weight:bold;margin-top:2px;}
 </style>
 
-<!-- Firebase compat -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
@@ -60,7 +61,7 @@ const db = firebase.database();
 </div>
 
 <script>
-// Unlock app
+// Unlock
 let clicks=0;
 document.getElementById("unlockTrigger").onclick=()=>{
   clicks++;
@@ -82,7 +83,6 @@ function openDoc(){
   const editBtn = document.getElementById("editBtn");
   const docRef = db.ref("document");
 
-  // Live load
   docRef.on("value", snap=>{
     const val = snap.val() || "";
     if(val!==ed.innerHTML && !ed.isContentEditable) ed.innerHTML = val;
@@ -108,7 +108,7 @@ function openDoc(){
   });
 }
 
-// Discord-style Chat
+// Discord-style chat (live)
 function openChat() {
   let nickname = localStorage.getItem("nickname");
   if(!nickname){
@@ -131,30 +131,27 @@ function openChat() {
   const sendBtn = document.getElementById("sendBtn");
   const changeNickBtn = document.getElementById("changeNickBtn");
   const clearBtn = document.getElementById("clearBtn");
-  let lastSent=0;
+  let lastSent = 0;
 
-  // Load messages once (Discord-style)
-  db.ref("chat").once("value", snap=>{
-    const msgs = snap.val()||{};
-    Object.values(msgs).forEach(m=>{
-      const p = document.createElement("div");
-      p.className="chat-msg";
-      p.innerHTML=`<div class="time">${m.time}</div><div class="nick">${m.nick}</div>${m.msg}`;
-      box.appendChild(p);
-    });
+  // Listen live for new messages
+  db.ref("chat").on("child_added", snap=>{
+    const m = snap.val();
+    const p = document.createElement("div");
+    p.className="chat-msg";
+    p.innerHTML=`<div class="time">${m.time}</div><div class="nick">${m.nick}</div>${m.msg}`;
+    box.appendChild(p);
     box.scrollTop = box.scrollHeight;
   });
 
-  // Send message
+  // Send message with 1s cooldown
   sendBtn.onclick = ()=>{
     const now = Date.now();
-    if(now-lastSent<1000){alert("Slow down!");return;}
+    if(now-lastSent<1000){alert("Slow down!"); return;}
     if(!input.value.trim()) return;
     const time = new Date().toLocaleTimeString();
     db.ref("chat").push({nick:nickname,msg:input.value.trim(),time});
     input.value="";
     lastSent = now;
-    setTimeout(()=>box.scrollTop = box.scrollHeight,50);
   };
   input.addEventListener("keydown", e=>{if(e.key==="Enter") sendBtn.click();});
 
@@ -167,7 +164,7 @@ function openChat() {
     } else alert("Wrong code!");
   };
 
-  // Clear chat (secret)
+  // Clear chat
   clearBtn.onclick = ()=>{
     const code = prompt("Enter secret code to clear chat:");
     if(code==="Ethandagod"){db.ref("chat").remove(); box.innerHTML=""; alert("Chat cleared!");}
