@@ -11,19 +11,12 @@ body{
 }
 
 /* SHAKE */
-@keyframes shake {
-  0% { transform: translateX(0); }
-  25% { transform: translateX(-6px); }
-  50% { transform: translateX(6px); }
-  75% { transform: translateX(-6px); }
-  100% { transform: translateX(0); }
-}
-.shake { animation: shake 0.3s; }
+@keyframes shake {0% {transform:translateX(0);}25% {transform:translateX(-6px);}50% {transform:translateX(6px);}75% {transform:translateX(-6px);}100% {transform:translateX(0);}}
+.shake {animation:shake 0.3s;}
 
 /* FULLSCREEN HOME */
 #documentView{
-  width:100vw;
-  height:100vh;
+  width:100vw; height:100vh;
   background:#f8fafc;
   display:flex;
   align-items:center;
@@ -56,8 +49,7 @@ body{
   color:white;
   padding:20px;
   position:fixed;
-  top:0;
-  bottom:0;
+  top:0; bottom:0;
 }
 
 .sidebar button{
@@ -70,10 +62,7 @@ body{
   border-radius:6px;
   cursor:pointer;
 }
-
-.sidebar button:hover{
-  background:#334155;
-}
+.sidebar button:hover{background:#334155;}
 
 .content{
   margin-left:240px;
@@ -89,6 +78,7 @@ body{
   padding:20px;
   min-height:350px;
   box-shadow:0 5px 10px rgba(0,0,0,0.1);
+  overflow-y:auto;
 }
 
 /* IFRAME */
@@ -99,7 +89,6 @@ iframe{
 }
 </style>
 </head>
-
 <body>
 
 <!-- LOCKED HOME -->
@@ -107,48 +96,6 @@ iframe{
   <div class="docPage">
     <h1>Notes</h1>
     <p>Math examples</p>
-    <p>Multiplication & Division
-
-+ × + = +
-
-- × - = +
-
-+ × - = -
-
-- × + = -
-
-+ ÷ + = +
-
-- ÷ - = +
-
-+ ÷ - = -
-
-- ÷ + = -
-
-Addition
-
-Same signs → add, keep the sign
-
-Different signs → subtract, keep the bigger sign
-
-Examples
-
--5 × -3 = 15
-
-6 × -4 = -24
-
--8 + -2 = -10
-
-7 + -3 = 4
-
-Absolute Value
-
-Distance from zero
-
-Always positive
-
-|−6| = 6.</p>
-
     <div class="footer">
       Page 1 | Word Count: <span id="wordCount">1342</span>
     </div>
@@ -193,77 +140,59 @@ function unlock(){
   }
 }
 
-/* SECRET TRIGGERS */
-document.addEventListener("keydown", e => {
+document.addEventListener("keydown", e=>{
   if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==="e") unlock();
 });
 
-document.getElementById("wordCount").onclick = () => {
+document.getElementById("wordCount").onclick = ()=>{
   clicks++;
-  if(clicks >= 5){
-    clicks = 0;
-    unlock();
-  }
-};
+  if(clicks>=5){clicks=0;unlock();}
+}
 
 /* DOCUMENT */
 function openDoc(){
   const c = document.getElementById("content");
-  c.innerHTML = `
-    <button id="editBtn">Edit</button>
-    <div id="editor" contenteditable="false"></div>
-  `;
-
+  c.innerHTML = `<button id="editBtn">Edit</button><div id="editor" contenteditable="false"></div>`;
   const editor = document.getElementById("editor");
 
-  // Load from localStorage
+  // Load saved content (localStorage)
   editor.innerHTML = localStorage.getItem("doc") || `
     <h2>Notes</h2>
     <p>Start typing...</p>
   `;
 
-  // Save to localStorage on input
-  editor.addEventListener("input", () => {
+  // Save edits locally
+  editor.addEventListener("input", ()=>{
     localStorage.setItem("doc", editor.innerHTML);
   });
 
   // Edit button
-  document.getElementById("editBtn").onclick = () => {
+  document.getElementById("editBtn").onclick = ()=>{
     const code = prompt("Enter edit code");
-    if(code === EDIT_CODE){
-      editor.contentEditable = true;
-      editor.focus();
-    } else if(code !== null){
-      shake();
-      alert("Wrong code");
-    }
+    if(code===EDIT_CODE){editor.contentEditable=true; editor.focus();}
+    else if(code!==null){shake(); alert("Wrong code");}
   };
 }
 
 /* YOUTUBE */
 function openYT(){
   const c = document.getElementById("content");
-  c.innerHTML = `
-    <h2>YouTube Embed</h2>
+  c.innerHTML=`<h2>YouTube Embed</h2>
     <input id="yt" placeholder="Paste YouTube link">
     <button onclick="embed()">Embed</button><br><br>
-    <iframe id="player"></iframe>
-  `;
+    <iframe id="player"></iframe>`;
 }
-
 function embed(){
-  const url = document.getElementById("yt").value;
-  let id = "";
-  if(url.includes("watch?v=")) id = url.split("watch?v=")[1].split("&")[0];
-  else if(url.includes("youtu.be/")) id = url.split("youtu.be/")[1].split("?")[0];
-  if(id) document.getElementById("player").src =
-    "https://www.youtube.com/embed/" + id;
+  const url=document.getElementById("yt").value;
+  let id="";
+  if(url.includes("watch?v=")) id=url.split("watch?v=")[1].split("&")[0];
+  else if(url.includes("youtu.be/")) id=url.split("youtu.be/")[1].split("?")[0];
+  if(id) document.getElementById("player").src="https://www.youtube.com/embed/"+id;
 }
 
 /* GAMES */
 function openGames(){
-  document.getElementById("content").innerHTML =
-    '<iframe src="games.html"></iframe>';
+  window.open("games.html", "_blank"); // opens your game in a new tab
 }
 </script>
 
