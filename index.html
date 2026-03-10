@@ -62,6 +62,7 @@ firebase.initializeApp({
   projectId:"learning-history-1bfd5"
 });
 const db=firebase.database();
+  firebase.database().ref().keepSynced(true);
 </script>
 </head>
 
