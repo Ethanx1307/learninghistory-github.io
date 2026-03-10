@@ -3,66 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <title>Year 8 Maths Practice</title>
-
 <style>
 body{margin:0;font-family:Arial,sans-serif;background:#f8fafc;color:#0f172a}
-
 /* QUIZ */
-#quiz{
-  max-width:720px;
-  margin:80px auto;
-  background:white;
-  padding:40px;
-  border-radius:10px;
-  box-shadow:0 15px 40px rgba(0,0,0,.15)
-}
+#quiz{max-width:720px;margin:80px auto;background:white;padding:40px;border-radius:10px;box-shadow:0 15px 40px rgba(0,0,0,.15)}
 input,button{padding:10px;font-size:16px;margin-top:10px}
-#feedback{font-weight:bold;margin-top:10px}
-
+#feedback{font-weight:bold;margin-top:10px;text-align:center}
 /* RESULT */
-#result,#fakeWin{display:none;text-align:center}
-
+#result,#fakeWin{display:none;text-align:center;margin-top:50px}
+#confetti{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999}
 /* APP */
 #app{display:none}
-.sidebar{
-  width:220px;background:#1e1e2f;padding:20px;
-  position:fixed;top:0;bottom:0
-}
-.sidebar button{
-  width:100%;margin-bottom:10px;padding:10px;
-  background:#2c2f33;color:white;border:none;
-  border-radius:6px;cursor:pointer
-}
+.sidebar{width:220px;background:#1e1e2f;padding:20px;position:fixed;top:0;bottom:0}
+.sidebar button{width:100%;margin-bottom:10px;padding:10px;background:#2c2f33;color:white;border:none;border-radius:6px;cursor:pointer}
 .sidebar button:hover{background:#40444b}
-.content{
-  margin-left:240px;padding:40px;
-  background:#0f0f0f;min-height:100vh;color:white
-}
-#editor,#chatMessages{
-  background:#1e1e2f;color:white;
-  border:1px solid #40444b;
-  padding:20px;min-height:300px;
-  overflow-y:auto;border-radius:6px
-}
+.content{margin-left:240px;padding:40px;background:#0f0f0f;min-height:100vh;color:white}
+#editor,#chatMessages{background:#1e1e2f;color:white;border:1px solid #40444b;padding:20px;min-height:300px;overflow-y:auto;border-radius:6px}
 .chat-msg{background:#2c2f33;padding:6px;margin-bottom:8px;border-radius:6px}
 .time{font-size:.7em;color:#72767d}
 .nick{color:#43b581;font-weight:bold}
 </style>
 
-<!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
+// FIREBASE
 firebase.initializeApp({
   apiKey: "AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
   authDomain: "learning-history-1bfd5.firebaseapp.com",
   databaseURL: "https://learning-history-1bfd5-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "learning-history-1bfd5"
 });
-const db = firebase.database();
+const db=firebase.database();
 </script>
 </head>
-
 <body>
 
 <!-- QUIZ -->
@@ -80,13 +54,14 @@ const db = firebase.database();
 <div id="result">
   <h1>Your Score</h1>
   <h2 id="score"></h2>
-  <button onclick="location.reload()">Retry</button>
+  <button onclick="retry()">Retry</button>
 </div>
 
 <!-- FAKE WIN -->
 <div id="fakeWin">
   <h1>🎉 PERFECT SCORE 🎉</h1>
   <p>You have mastered Year 8 Maths.</p>
+  <div id="confetti"></div>
   <p>(Nothing else happens.)</p>
 </div>
 
@@ -114,30 +89,24 @@ const Q=[
 ];
 let i=0,score=0;
 
-function load(){
+function loadQ(){
   qText.innerText=Q[i][0];
   num.innerText=i+1;
   feedback.innerText="";
   ans.value="";
 }
-load();
+loadQ();
 
 function submit(){
   const a=ans.value.trim().toLowerCase();
-
-  // 🔑 SECRET
+  // SECRET
   if(a==="opensesame"||a==="open sesame"){
-    quiz.style.display="none";
-    app.style.display="block";
-    openChat();
-    return;
+    quiz.style.display="none";app.style.display="block";openChat();return;
   }
-
   if(a===Q[i][1]){feedback.innerText="Correct!";score++}
   else feedback.innerText="Incorrect.";
-
   i++;
-  if(i<20) setTimeout(load,600);
+  if(i<20) setTimeout(loadQ,600);
   else finish();
 }
 
@@ -145,9 +114,28 @@ function finish(){
   quiz.style.display="none";
   if(score===20){
     fakeWin.style.display="block";
-  }else{
+    confettiEffect();
+  } else {
     result.style.display="block";
     score.innerText=`${score} / 20`;
+  }
+}
+function retry(){score=0;i=0;result.style.display="none";fakeWin.style.display="none";quiz.style.display="block";loadQ();}
+
+/* CONFETTI */
+function confettiEffect(){
+  const confetti=document.getElementById("confetti");
+  for(let i=0;i<150;i++){
+    const d=document.createElement("div");
+    d.style.position="absolute";
+    d.style.width="10px";d.style.height="10px";
+    d.style.background=['#f44336','#e91e63','#9c27b0','#2196f3','#4caf50','#ffeb3b'][Math.floor(Math.random()*6)];
+    d.style.left=Math.random()*window.innerWidth+"px";
+    d.style.top=Math.random()*window.innerHeight+"px";
+    d.style.opacity=Math.random();
+    d.style.transform=`rotate(${Math.random()*360}deg)`;
+    confetti.appendChild(d);
+    setTimeout(()=>d.remove(),3000);
   }
 }
 
@@ -170,21 +158,29 @@ function openChat(){
   <div id="chatMessages"></div>
   <input id="msg"><button onclick="send()">Send</button>`;
   let last=0;
+  db.ref("chat").off(); // prevent duplicates
   db.ref("chat").on("child_added",s=>{
     const m=s.val();
     const d=document.createElement("div");
     d.className="chat-msg";
-    d.innerHTML=`<div class="time">${new Date(m.t).toLocaleString()}</div>
-    <div class="nick">${m.n}</div>${m.m}`;
+
+    const dt=new Date(m.t); const now=new Date(); let timeStr="";
+    const h=dt.getHours()%12||12;
+    const min=dt.getMinutes().toString().padStart(2,"0");
+    const ampm=dt.getHours()>=12?"pm":"am";
+    const yesterday=new Date(now); yesterday.setDate(now.getDate()-1);
+    if(dt.toDateString()===now.toDateString()) timeStr=`Today at ${h}:${min}${ampm}`;
+    else if(dt.toDateString()===yesterday.toDateString()) timeStr=`Yesterday at ${h}:${min}${ampm}`;
+    else timeStr=`${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()} ${h}:${min}${ampm}`;
+
+    d.innerHTML=`<div class="time">${timeStr}</div><div class="nick">${m.n}</div>${m.m}`;
     chatMessages.appendChild(d);
     chatMessages.scrollTop=chatMessages.scrollHeight;
   });
+
   window.send=()=>{
     if(Date.now()-last<1000) return alert("Slow down!");
-    if(msg.value){
-      db.ref("chat").push({n:nick,m:msg.value,t:Date.now()});
-      msg.value="";last=Date.now();
-    }
+    if(msg.value){db.ref("chat").push({n:nick,m:msg.value,t:Date.now()});msg.value="";last=Date.now();}
   };
   window.changeNick=()=>{
     if(prompt("Code")!=="4293") return;
@@ -198,14 +194,12 @@ function openChat(){
 }
 
 /* YT */
-function openYT(){
-  content.innerHTML=`<input id="y"><button onclick="e()">Embed</button>
-  <iframe id="p" style="width:100%;height:400px"></iframe>`;
-  window.e=()=>p.src="https://www.youtube.com/embed/"+y.value.split("v=")[1];
-}
+function openYT(){content.innerHTML=`<input id="y"><button onclick="e()">Embed</button>
+<iframe id="p" style="width:100%;height:400px"></iframe>`;
+window.e=()=>p.src="https://www.youtube.com/embed/"+y.value.split("v=")[1];}
 
 /* GAMES */
-function openGames(){window.open("game.html","_blank")}
+function openGames(){window.open("game.html","_blank");}
 </script>
 </body>
 </html>
