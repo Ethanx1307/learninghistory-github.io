@@ -2,7 +2,8 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Math Cheat Sheet</title>
+<title>Math notes</title>
+
 <style>
 body{
   margin:0;
@@ -10,189 +11,153 @@ body{
   background:#0f172a;
 }
 
-/* SHAKE */
-@keyframes shake {0% {transform:translateX(0);}25% {transform:translateX(-6px);}50% {transform:translateX(6px);}75% {transform:translateX(-6px);}100% {transform:translateX(0);}}
-.shake {animation:shake 0.3s;}
-
-/* FULLSCREEN HOME */
-#documentView{
-  width:100vw; height:100vh;
-  background:#f8fafc;
+.container{
   display:flex;
-  align-items:center;
-  justify-content:center;
-}
-
-.docPage{
-  width:800px;
-  background:white;
-  padding:60px;
-  box-shadow:0 15px 40px rgba(0,0,0,0.25);
-  line-height:1.6;
-}
-
-.footer{
-  color:#777;
-  font-size:12px;
-  margin-top:40px;
-}
-
-/* APP */
-#app{
-  display:none;
   height:100vh;
 }
 
+/* SIDEBAR */
 .sidebar{
   width:220px;
   background:#020617;
-  color:white;
   padding:20px;
-  position:fixed;
-  top:0; bottom:0;
+  color:white;
 }
 
 .sidebar button{
   width:100%;
-  margin-bottom:10px;
   padding:10px;
+  margin-bottom:10px;
   background:#1e293b;
   color:white;
   border:none;
   border-radius:6px;
   cursor:pointer;
 }
-.sidebar button:hover{background:#334155;}
+.sidebar button:hover{
+  background:#334155;
+}
 
+/* CONTENT */
 .content{
-  margin-left:240px;
-  padding:40px;
+  flex:1;
+  padding:20px;
   background:#f1f5f9;
-  min-height:100vh;
 }
 
 /* DOCUMENT */
 #editor{
   background:white;
   border:1px solid #ccc;
-  padding:20px;
-  min-height:350px;
-  box-shadow:0 5px 10px rgba(0,0,0,0.1);
-  overflow-y:auto;
+  min-height:300px;
+  padding:15px;
 }
 
-/* IFRAME */
-iframe{
-  width:100%;
-  height:90vh;
-  border:none;
+/* CHAT */
+#chatMessages{
+  height:260px;
+  overflow-y:auto;
+  background:white;
+  border:1px solid #ccc;
+  padding:10px;
+  margin-bottom:10px;
+}
+
+input{
+  padding:8px;
+  width:75%;
+}
+button.send{
+  padding:8px;
 }
 </style>
 </head>
+
 <body>
 
-<!-- LOCKED HOME -->
-<div id="documentView">
-  <div class="docPage">
-    <h1>Notes</h1>
-    <p>Math examples</p>
-    <div class="footer">
-      Page 1 | Word Count: <span id="wordCount">1342</span>
-    </div>
-  </div>
-</div>
-
-<!-- MAIN APP -->
-<div id="app">
+<div class="container">
   <div class="sidebar">
-    <button onclick="openDoc()">Document</button>
-    <button onclick="openYT()">YouTube</button>
-    <button onclick="openGames()">Games</button>
+    <button onclick="openDoc()">📄 Document</button>
+    <button onclick="openChat()">💬 Chat</button>
   </div>
 
   <div class="content" id="content">
-    Welcome
+    <h2>Welcome</h2>
+    <p>Select Document or Chat</p>
   </div>
 </div>
 
+<!-- 🔥 FIREBASE SCRIPTS (HTML FRIENDLY) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
 <script>
-/* CODES */
-const MAIN_CODE = "4293";
-const EDIT_CODE = "1219";
-let clicks = 0;
+/* ================= FIREBASE SETUP ================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
+  authDomain: "learning-history-1bfd5.firebaseapp.com",
+  databaseURL: "https://learning-history-1bfd5-default-rtdb.firebaseio.com",
+  projectId: "learning-history-1bfd5",
+  storageBucket: "learning-history-1bfd5.appspot.com",
+  messagingSenderId: "231811778288",
+  appId: "1:231811778288:web:d112859a8bc6143fffa435"
+};
 
-/* SHAKE */
-function shake(){
-  document.body.classList.add("shake");
-  setTimeout(()=>document.body.classList.remove("shake"),300);
-}
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-/* UNLOCK */
-function unlock(){
-  const code = prompt("Enter code");
-  if(code === MAIN_CODE){
-    document.getElementById("documentView").style.display="none";
-    document.getElementById("app").style.display="block";
-    openDoc();
-  } else if(code !== null){
-    shake();
-    alert("Incorrect");
-  }
-}
-
-document.addEventListener("keydown", e=>{
-  if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==="e") unlock();
-});
-
-document.getElementById("wordCount").onclick = ()=>{
-  clicks++;
-  if(clicks>=5){clicks=0;unlock();}
-}
-
-/* DOCUMENT */
+/* ================= DOCUMENT ================= */
 function openDoc(){
-  const c = document.getElementById("content");
-  c.innerHTML = `<button id="editBtn">Edit</button><div id="editor" contenteditable="false"></div>`;
-  const editor = document.getElementById("editor");
-
-  // Load saved content (localStorage)
-  editor.innerHTML = localStorage.getItem("doc") || `
-    <h2>Notes</h2>
-    <p>Start typing...</p>
+  document.getElementById("content").innerHTML = `
+    <h2>Live Document</h2>
+    <div id="editor" contenteditable="true"></div>
   `;
 
-  // Save edits locally
-  editor.addEventListener("input", ()=>{
-    localStorage.setItem("doc", editor.innerHTML);
+  const editor = document.getElementById("editor");
+
+  // Load document live
+  db.ref("document").on("value", snap => {
+    if(snap.exists() && editor.innerHTML !== snap.val()){
+      editor.innerHTML = snap.val();
+    }
   });
 
-  // Edit button
-  document.getElementById("editBtn").onclick = ()=>{
-    const code = prompt("Enter edit code");
-    if(code===EDIT_CODE){editor.contentEditable=true; editor.focus();}
-    else if(code!==null){shake(); alert("Wrong code");}
-  };
+  // Save on typing
+  editor.addEventListener("input", () => {
+    db.ref("document").set(editor.innerHTML);
+  });
 }
 
-/* YOUTUBE */
-function openYT(){
-  const c = document.getElementById("content");
-  c.innerHTML=`<h2>YouTube Embed</h2>
-    <input id="yt" placeholder="Paste YouTube link">
-    <button onclick="embed()">Embed</button><br><br>
-    <iframe id="player"></iframe>`;
-}
-function embed(){
-  const url=document.getElementById("yt").value;
-  let id="";
-  if(url.includes("watch?v=")) id=url.split("watch?v=")[1].split("&")[0];
-  else if(url.includes("youtu.be/")) id=url.split("youtu.be/")[1].split("?")[0];
-  if(id) document.getElementById("player").src="https://www.youtube.com/embed/"+id;
+/* ================= CHAT ================= */
+function openChat(){
+  document.getElementById("content").innerHTML = `
+    <h2>Live Chat</h2>
+    <div id="chatMessages"></div>
+    <input id="chatInput" placeholder="Type a message">
+    <button class="send" onclick="sendMsg()">Send</button>
+  `;
+
+  const box = document.getElementById("chatMessages");
+
+  // Load messages live
+  db.ref("chat").on("value", snap => {
+    box.innerHTML = "";
+    if(snap.exists()){
+      Object.values(snap.val()).forEach(msg => {
+        const p = document.createElement("p");
+        p.textContent = msg;
+        box.appendChild(p);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+  });
 }
 
-/* GAMES */
-function openGames(){
-  window.open("game.html", "_blank"); // opens your game in a new tab
+function sendMsg(){
+  const input = document.getElementById("chatInput");
+  if(input.value.trim() === "") return;
+  db.ref("chat").push(input.value);
+  input.value = "";
 }
 </script>
 
