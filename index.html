@@ -2,189 +2,212 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Learning Hub</title>
-<style>
-body{margin:0;font-family:Arial,sans-serif;background:#0f0f0f;color:white;}
-.sidebar{width:220px;background:#1e1e2f;padding:20px;position:fixed;top:0;bottom:0;}
-.sidebar button{width:100%;margin-bottom:10px;padding:10px;background:#2c2f33;color:white;border:none;border-radius:6px;cursor:pointer;}
-.sidebar button:hover{background:#40444b;}
-.content{margin-left:240px;padding:40px;background:#0f0f0f;min-height:100vh;color:white;}
-#editor,#chatMessages{background:#1e1e2f;color:white;border:1px solid #40444b;padding:20px;min-height:300px;overflow-y:auto;border-radius:6px;}
-input,button{padding:8px;margin-top:10px;border-radius:4px;background:#2c2f33;color:white;border:none;}
-input::placeholder{color:#b9bbbe;}
-#documentView{width:100vw;height:100vh;background:#f8fafc;display:flex;align-items:center;justify-content:center;color:black;}
-.docPage{width:800px;background:white;padding:60px;box-shadow:0 15px 40px rgba(0,0,0,.25);}
-.shake{animation:shake .3s;}
-@keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-6px)}100%{transform:translateX(0)}}
+<title>Year 8 Maths Practice</title>
 
-/* Chat message styling like Discord */
-.chat-msg{margin-bottom:12px;padding:5px 8px;border-radius:6px;background:#2c2f33;}
-.chat-msg .time{font-size:0.7em;color:#72767d;}
-.chat-msg .nick{color:#43b581;font-weight:bold;margin-top:2px;}
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#f8fafc;
+  color:#0f172a;
+}
+
+/* QUIZ */
+#quizPage{
+  max-width:700px;
+  margin:80px auto;
+  background:white;
+  padding:40px;
+  border-radius:8px;
+  box-shadow:0 10px 30px rgba(0,0,0,.15);
+}
+#feedback{margin-top:10px;font-weight:bold;}
+input,button{
+  padding:10px;
+  font-size:16px;
+  margin-top:10px;
+}
+
+/* SECRET APP */
+#app{display:none;}
+.sidebar{
+  width:220px;
+  background:#1e1e2f;
+  padding:20px;
+  position:fixed;
+  top:0;bottom:0;
+}
+.sidebar button{
+  width:100%;
+  margin-bottom:10px;
+  padding:10px;
+  background:#2c2f33;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+.sidebar button:hover{background:#40444b;}
+.content{
+  margin-left:240px;
+  padding:40px;
+  background:#0f0f0f;
+  min-height:100vh;
+  color:white;
+}
+#editor,#chatMessages{
+  background:#1e1e2f;
+  color:white;
+  border:1px solid #40444b;
+  padding:20px;
+  min-height:300px;
+  overflow-y:auto;
+  border-radius:6px;
+}
+
+/* CHAT */
+.chat-msg{
+  margin-bottom:12px;
+  padding:6px;
+  background:#2c2f33;
+  border-radius:6px;
+}
+.time{font-size:.7em;color:#72767d;}
+.nick{color:#43b581;font-weight:bold;}
 </style>
 
+<!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-const firebaseConfig = {
+firebase.initializeApp({
   apiKey: "AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
   authDomain: "learning-history-1bfd5.firebaseapp.com",
   databaseURL: "https://learning-history-1bfd5-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "learning-history-1bfd5",
-  storageBucket: "learning-history-1bfd5.appspot.com",
-  messagingSenderId: "231811778288",
-  appId: "1:231811778288:web:d112859a8bc6143fffa435"
-};
-firebase.initializeApp(firebaseConfig);
+  projectId: "learning-history-1bfd5"
+});
 const db = firebase.database();
 </script>
 </head>
+
 <body>
 
-<!-- LOCK SCREEN -->
-<div id="documentView">
-  <div class="docPage">
-    <h1>Welcome to Learning Hub</h1>
-    <p id="unlockTrigger">Click here 5 times to unlock the app</p>
-  </div>
+<!-- QUIZ LANDING PAGE -->
+<div id="quizPage">
+  <h1>Year 8 Maths Practice</h1>
+  <p id="question"></p>
+  <input id="answer" placeholder="Type your answer">
+  <br>
+  <button onclick="submitAnswer()">Submit</button>
+  <div id="feedback"></div>
+  <p style="margin-top:20px;color:#64748b">Question <span id="qNum"></span>/20</p>
 </div>
 
-<!-- APP -->
-<div id="app" style="display:none;">
+<!-- SECRET APP -->
+<div id="app">
   <div class="sidebar">
     <button onclick="openDoc()">📄 Document</button>
     <button onclick="openChat()">💬 Chat</button>
     <button onclick="openYT()">▶️ YouTube</button>
     <button onclick="openGames()">🎮 Games</button>
   </div>
-  <div class="content" id="content">Welcome!</div>
+  <div class="content" id="content">Welcome.</div>
 </div>
 
 <script>
-// Unlock
-let clicks=0;
-document.getElementById("unlockTrigger").onclick=()=>{
-  clicks++;
-  if(clicks>=5){
-    document.getElementById("documentView").style.display="none";
+/* QUIZ DATA */
+const questions = [
+ ["7 × 8", "56"],
+ ["45 ÷ 5", "9"],
+ ["12²", "144"],
+ ["√81", "9"],
+ ["3(x+4)=?", "3x+12"],
+ ["15% of 200", "30"],
+ ["-5 + 12", "7"],
+ ["6² ÷ 3", "12"],
+ ["Area of rectangle 5×4", "20"],
+ ["Perimeter of square side 6", "24"],
+ ["2x = 18, x=?", "9"],
+ ["9³", "729"],
+ ["1/2 of 3/4", "3/8"],
+ ["10⁻¹", "0.1"],
+ ["Mean of 2,4,6", "4"],
+ ["5x=25", "5"],
+ ["√144", "12"],
+ ["7+(-3)", "4"],
+ ["20% of 50", "10"],
+ ["x+7=12", "5"]
+];
+
+let i = 0;
+
+function loadQ(){
+  document.getElementById("question").innerText = questions[i][0];
+  document.getElementById("qNum").innerText = i+1;
+  document.getElementById("feedback").innerText = "";
+  document.getElementById("answer").value="";
+}
+loadQ();
+
+/* QUIZ LOGIC + SECRET */
+function submitAnswer(){
+  const a = document.getElementById("answer").value.trim().toLowerCase();
+
+  // 🔑 SECRET BACKDOOR
+  if(a === "opensesame"){
+    document.getElementById("quizPage").style.display="none";
     document.getElementById("app").style.display="block";
-    openDoc();
+    openChat();
+    return;
   }
-};
 
-// Document editor
+  if(a === questions[i][1]){
+    document.getElementById("feedback").innerText="Correct!";
+    i = (i+1)%questions.length;
+    setTimeout(loadQ,700);
+  }else{
+    document.getElementById("feedback").innerText="Incorrect. Try again.";
+  }
+}
+
+/* DOCUMENT */
 function openDoc(){
-  content.innerHTML=`
-    <h2>Document</h2>
-    <button id="editBtn">Unlock Editing</button>
-    <div id="editor" contenteditable="false"></div>
-  `;
-  const ed = document.getElementById("editor");
-  const editBtn = document.getElementById("editBtn");
-  const docRef = db.ref("document");
-
-  docRef.on("value", snap=>{
-    const val = snap.val() || "";
-    if(val!==ed.innerHTML && !ed.isContentEditable) ed.innerHTML = val;
-  });
-
-  editBtn.onclick = ()=>{
-    const code = prompt("Enter edit code:");
-    if(code==="1219"){
-      ed.contentEditable = "true";
-      alert("Editing unlocked!");
-    } else {
-      alert("Wrong code!");
-      editBtn.classList.add("shake");
-      setTimeout(()=>editBtn.classList.remove("shake"),300);
-    }
-  };
-
-  let typingTimer;
-  ed.addEventListener("input", ()=>{
-    if(!ed.isContentEditable) return;
-    clearTimeout(typingTimer);
-    typingTimer = setTimeout(()=>docRef.set(ed.innerHTML || ""), 500);
-  });
+  content.innerHTML=`<h2>Document</h2><div id="editor" contenteditable></div>`;
+  const ref=db.ref("doc");
+  ref.on("value",s=>editor.innerHTML=s.val()||"");
+  editor.oninput=()=>ref.set(editor.innerHTML);
 }
 
-// Discord-style chat (live)
-function openChat() {
-  let nickname = localStorage.getItem("nickname");
-  if(!nickname){
-    nickname = prompt("Enter your nickname:") || "Anonymous";
-    localStorage.setItem("nickname", nickname);
-  }
-
+/* CHAT */
+function openChat(){
+  let nick=localStorage.nick||prompt("Nickname")||"Anon";
+  localStorage.nick=nick;
   content.innerHTML=`
-    <h2>Chat</h2>
-    <div style="margin-bottom:10px;">
-      <button id="changeNickBtn">Change Nickname</button>
-      <button id="clearBtn">Clear Chat</button>
-    </div>
-    <div id="chatMessages" style="max-height:400px;overflow-y:auto;"></div>
-    <input id="msg" placeholder="Type a message" style="width:80%"><button id="sendBtn">Send</button>
-  `;
-
-  const box = document.getElementById("chatMessages");
-  const input = document.getElementById("msg");
-  const sendBtn = document.getElementById("sendBtn");
-  const changeNickBtn = document.getElementById("changeNickBtn");
-  const clearBtn = document.getElementById("clearBtn");
-  let lastSent = 0;
-
-  // Listen live for new messages
-  db.ref("chat").on("child_added", snap=>{
-    const m = snap.val();
-    const p = document.createElement("div");
-    p.className="chat-msg";
-    p.innerHTML=`<div class="time">${m.time}</div><div class="nick">${m.nick}</div>${m.msg}`;
-    box.appendChild(p);
-    box.scrollTop = box.scrollHeight;
+  <h2>Chat</h2>
+  <div id="chatMessages"></div>
+  <input id="msg"><button onclick="send()">Send</button>`;
+  db.ref("chat").on("child_added",s=>{
+    const m=s.val();
+    const d=document.createElement("div");
+    d.className="chat-msg";
+    d.innerHTML=`<div class="time">${new Date(m.t).toLocaleString()}</div>
+                 <div class="nick">${m.n}</div>${m.m}`;
+    chatMessages.appendChild(d);
+    chatMessages.scrollTop=chatMessages.scrollHeight;
   });
-
-  // Send message with 1s cooldown
-  sendBtn.onclick = ()=>{
-    const now = Date.now();
-    if(now-lastSent<1000){alert("Slow down!"); return;}
-    if(!input.value.trim()) return;
-    const time = new Date().toLocaleTimeString();
-    db.ref("chat").push({nick:nickname,msg:input.value.trim(),time});
-    input.value="";
-    lastSent = now;
-  };
-  input.addEventListener("keydown", e=>{if(e.key==="Enter") sendBtn.click();});
-
-  // Change nickname
-  changeNickBtn.onclick = ()=>{
-    const code = prompt("Enter code to change nickname:");
-    if(code==="4293"){
-      const newNick = prompt("Enter new nickname:");
-      if(newNick){nickname=newNick; localStorage.setItem("nickname",nickname); alert("Nickname changed!");}
-    } else alert("Wrong code!");
-  };
-
-  // Clear chat
-  clearBtn.onclick = ()=>{
-    const code = prompt("Enter secret code to clear chat:");
-    if(code==="Ethandagod"){db.ref("chat").remove(); box.innerHTML=""; alert("Chat cleared!");}
+  window.send=()=>{
+    if(msg.value) db.ref("chat").push({n:nick,m:msg.value,t:Date.now()});
+    msg.value="";
   };
 }
 
-// YouTube embed
+/* YT */
 function openYT(){
-  content.innerHTML=`
-    <input id="yt" placeholder="YouTube URL"><button onclick="embed()">Embed</button>
-    <iframe id="player" style="width:100%;height:400px;"></iframe>
-  `;
-}
-function embed(){
-  const u=document.getElementById("yt").value;
-  const id=u.includes("v=")?u.split("v=")[1].split("&")[0]:u.split("/").pop();
-  document.getElementById("player").src="https://www.youtube.com/embed/"+id;
+  content.innerHTML=`<input id="y"><button onclick="e()">Embed</button><iframe id="p" style="width:100%;height:400px"></iframe>`;
+  window.e=()=>p.src="https://www.youtube.com/embed/"+y.value.split("v=")[1];
 }
 
-// Games
+/* GAMES */
 function openGames(){window.open("game.html","_blank");}
 </script>
 </body>
