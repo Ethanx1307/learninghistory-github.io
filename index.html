@@ -2,97 +2,74 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Math notes</title>
+<title>Learning Hub</title>
 
 <style>
-body{
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:#0f172a;
+body{margin:0;font-family:Arial;background:#0f172a;}
+@keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-6px)}100%{transform:translateX(0)}}
+.shake{animation:shake .3s}
+
+#documentView{
+  width:100vw;height:100vh;background:#f8fafc;
+  display:flex;align-items:center;justify-content:center;
+}
+.docPage{
+  width:800px;background:white;padding:60px;
+  box-shadow:0 15px 40px rgba(0,0,0,.25)
 }
 
-.container{
-  display:flex;
-  height:100vh;
-}
-
-/* SIDEBAR */
+#app{display:none;height:100vh}
 .sidebar{
-  width:220px;
-  background:#020617;
-  padding:20px;
-  color:white;
+  width:220px;background:#020617;color:white;
+  padding:20px;position:fixed;top:0;bottom:0
 }
-
 .sidebar button{
-  width:100%;
-  padding:10px;
-  margin-bottom:10px;
-  background:#1e293b;
-  color:white;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
+  width:100%;margin-bottom:10px;padding:10px;
+  background:#1e293b;color:white;border:none;
+  border-radius:6px;cursor:pointer
 }
-.sidebar button:hover{
-  background:#334155;
-}
-
-/* CONTENT */
+.sidebar button:hover{background:#334155}
 .content{
-  flex:1;
-  padding:20px;
-  background:#f1f5f9;
+  margin-left:240px;padding:40px;
+  background:#f1f5f9;min-height:100vh
 }
 
-/* DOCUMENT */
-#editor{
-  background:white;
-  border:1px solid #ccc;
-  min-height:300px;
-  padding:15px;
-}
-
-/* CHAT */
-#chatMessages{
-  height:260px;
-  overflow-y:auto;
-  background:white;
-  border:1px solid #ccc;
-  padding:10px;
-  margin-bottom:10px;
-}
-
-input{
-  padding:8px;
-  width:75%;
-}
-button.send{
-  padding:8px;
+#editor,#chatMessages{
+  background:white;border:1px solid #ccc;
+  padding:20px;min-height:300px;
+  overflow-y:auto
 }
 </style>
 </head>
 
 <body>
 
-<div class="container">
-  <div class="sidebar">
-    <button onclick="openDoc()">📄 Document</button>
-    <button onclick="openChat()">💬 Chat</button>
-  </div>
-
-  <div class="content" id="content">
-    <h2>Welcome</h2>
-    <p>Select Document or Chat</p>
+<!-- LOCK SCREEN -->
+<div id="documentView">
+  <div class="docPage">
+    <h1>Notes</h1>
+    <p>Click 5 times to unlock</p>
+    <p id="unlockTrigger">Word Count: 1342</p>
   </div>
 </div>
 
-<!-- 🔥 FIREBASE SCRIPTS (HTML FRIENDLY) -->
+<!-- APP -->
+<div id="app">
+  <div class="sidebar">
+    <button onclick="openDoc()">📄 Document</button>
+    <button onclick="openChat()">💬 Chat</button>
+    <button onclick="openYT()">▶️ YouTube</button>
+    <button onclick="openGames()">🎮 Games</button>
+  </div>
+  <div class="content" id="content">Welcome</div>
+</div>
+
+<!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
 <script>
-/* ================= FIREBASE SETUP ================= */
+/* 🔥 FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
   authDomain: "learning-history-1bfd5.firebaseapp.com",
@@ -102,62 +79,64 @@ const firebaseConfig = {
   messagingSenderId: "231811778288",
   appId: "1:231811778288:web:d112859a8bc6143fffa435"
 };
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-/* ================= DOCUMENT ================= */
+/* 🔐 UNLOCK */
+let clicks=0;
+document.getElementById("unlockTrigger").onclick=()=>{
+  clicks++; if(clicks>=5){
+    document.getElementById("documentView").style.display="none";
+    document.getElementById("app").style.display="block";
+    openDoc();
+  }
+};
+
+/* 📄 DOCUMENT */
 function openDoc(){
-  document.getElementById("content").innerHTML = `
-    <h2>Live Document</h2>
-    <div id="editor" contenteditable="true"></div>
-  `;
-
-  const editor = document.getElementById("editor");
-
-  // Load document live
-  db.ref("document").on("value", snap => {
-    if(snap.exists() && editor.innerHTML !== snap.val()){
-      editor.innerHTML = snap.val();
-    }
+  content.innerHTML=`<h2>Document</h2><div id="editor" contenteditable="true"></div>`;
+  const ed=document.getElementById("editor");
+  db.ref("document").on("value",s=>{
+    if(s.exists()&&ed.innerHTML!==s.val()) ed.innerHTML=s.val();
   });
-
-  // Save on typing
-  editor.addEventListener("input", () => {
-    db.ref("document").set(editor.innerHTML);
-  });
+  ed.oninput=()=>db.ref("document").set(ed.innerHTML);
 }
 
-/* ================= CHAT ================= */
+/* 💬 CHAT */
 function openChat(){
-  document.getElementById("content").innerHTML = `
-    <h2>Live Chat</h2>
+  content.innerHTML=`
+    <h2>Chat</h2>
     <div id="chatMessages"></div>
-    <input id="chatInput" placeholder="Type a message">
-    <button class="send" onclick="sendMsg()">Send</button>
-  `;
-
-  const box = document.getElementById("chatMessages");
-
-  // Load messages live
-  db.ref("chat").on("value", snap => {
-    box.innerHTML = "";
-    if(snap.exists()){
-      Object.values(snap.val()).forEach(msg => {
-        const p = document.createElement("p");
-        p.textContent = msg;
-        box.appendChild(p);
-      });
-      box.scrollTop = box.scrollHeight;
-    }
+    <input id="msg"><button onclick="send()">Send</button>`;
+  const box=document.getElementById("chatMessages");
+  db.ref("chat").on("value",s=>{
+    box.innerHTML="";
+    if(s.exists()) Object.values(s.val()).forEach(m=>{
+      box.innerHTML+=`<p>${m}</p>`;
+    });
   });
 }
+function send(){
+  const i=document.getElementById("msg");
+  if(i.value.trim()) db.ref("chat").push(i.value);
+  i.value="";
+}
 
-function sendMsg(){
-  const input = document.getElementById("chatInput");
-  if(input.value.trim() === "") return;
-  db.ref("chat").push(input.value);
-  input.value = "";
+/* ▶️ YOUTUBE */
+function openYT(){
+  content.innerHTML=`
+    <input id="yt"><button onclick="embed()">Embed</button>
+    <iframe id="player" style="width:100%;height:400px"></iframe>`;
+}
+function embed(){
+  const u=yt.value;
+  const id=u.includes("v=")?u.split("v=")[1].split("&")[0]:u.split("/").pop();
+  player.src="https://www.youtube.com/embed/"+id;
+}
+
+/* 🎮 GAMES */
+function openGames(){
+  window.open("game.html","_blank");
 }
 </script>
 
