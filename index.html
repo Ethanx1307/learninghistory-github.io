@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Learning Hub</title>
-
 <style>
 body{margin:0;font-family:Arial;background:#0f172a;}
 @keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-6px)}100%{transform:translateX(0)}}
@@ -39,6 +38,8 @@ body{margin:0;font-family:Arial;background:#0f172a;}
   padding:20px;min-height:300px;
   overflow-y:auto
 }
+
+input,button{padding:8px;margin-top:10px;}
 </style>
 </head>
 
@@ -85,7 +86,8 @@ const db = firebase.database();
 /* 🔐 UNLOCK */
 let clicks=0;
 document.getElementById("unlockTrigger").onclick=()=>{
-  clicks++; if(clicks>=5){
+  clicks++; 
+  if(clicks>=5){
     document.getElementById("documentView").style.display="none";
     document.getElementById("app").style.display="block";
     openDoc();
@@ -94,44 +96,88 @@ document.getElementById("unlockTrigger").onclick=()=>{
 
 /* 📄 DOCUMENT */
 function openDoc(){
-  content.innerHTML=`<h2>Document</h2><div id="editor" contenteditable="true"></div>`;
-  const ed=document.getElementById("editor");
-  db.ref("document").on("value",s=>{
-    if(s.exists()&&ed.innerHTML!==s.val()) ed.innerHTML=s.val();
+  content.innerHTML=`
+    <h2>Document</h2>
+    <button id="editBtn">Unlock Editing</button>
+    <div id="editor" contenteditable="false"></div>`;
+  
+  const ed = document.getElementById("editor");
+  const editBtn = document.getElementById("editBtn");
+
+  // Load document content
+  db.ref("document").on("value", s=>{
+    if(s.exists()) ed.innerHTML = s.val();
   });
-  ed.oninput=()=>db.ref("document").set(ed.innerHTML);
+
+  // Unlock editing
+  editBtn.onclick = ()=>{
+    const code = prompt("Enter edit code:");
+    if(code === "1219"){
+      ed.contentEditable = "true";
+      alert("You can now edit the document!");
+    } else {
+      alert("Wrong code!");
+      editBtn.classList.add("shake");
+      setTimeout(()=>editBtn.classList.remove("shake"),300);
+    }
+  };
+
+  // Save changes when editing
+  ed.oninput = ()=>{
+    if(ed.isContentEditable) db.ref("document").set(ed.innerHTML);
+  };
 }
 
 /* 💬 CHAT */
 function openChat(){
+  let nickname = localStorage.getItem("nickname");
+  if(!nickname){
+    nickname = prompt("Enter your nickname:");
+    if(!nickname) nickname = "Anonymous";
+    localStorage.setItem("nickname", nickname);
+  }
+
   content.innerHTML=`
     <h2>Chat</h2>
-    <div id="chatMessages"></div>
-    <input id="msg"><button onclick="send()">Send</button>`;
-  const box=document.getElementById("chatMessages");
-  db.ref("chat").on("value",s=>{
-    box.innerHTML="";
-    if(s.exists()) Object.values(s.val()).forEach(m=>{
-      box.innerHTML+=`<p>${m}</p>`;
-    });
+    <div id="chatMessages" style="max-height:300px; overflow-y:auto; border:1px solid #ccc; padding:10px"></div>
+    <input id="msg"><button id="sendBtn">Send</button>`;
+
+  const box = document.getElementById("chatMessages");
+  const input = document.getElementById("msg");
+  const sendBtn = document.getElementById("sendBtn");
+
+  // Listen for new messages
+  db.ref("chat").on("child_added", snapshot => {
+    const m = snapshot.val();
+    const p = document.createElement("p");
+    p.innerHTML = `<b>${m.nick}:</b> ${m.msg}`;
+    box.appendChild(p);
+    box.scrollTop = box.scrollHeight; // auto-scroll
   });
-}
-function send(){
-  const i=document.getElementById("msg");
-  if(i.value.trim()) db.ref("chat").push(i.value);
-  i.value="";
+
+  // Send message
+  sendBtn.onclick = () => {
+    if(input.value.trim()){
+      db.ref("chat").push({nick:nickname, msg:input.value.trim()});
+      input.value="";
+    }
+  };
+
+  input.addEventListener("keydown", e=>{
+    if(e.key==="Enter") sendBtn.click();
+  });
 }
 
 /* ▶️ YOUTUBE */
 function openYT(){
   content.innerHTML=`
-    <input id="yt"><button onclick="embed()">Embed</button>
+    <input id="yt" placeholder="YouTube URL"><button onclick="embed()">Embed</button>
     <iframe id="player" style="width:100%;height:400px"></iframe>`;
 }
 function embed(){
-  const u=yt.value;
+  const u=document.getElementById("yt").value;
   const id=u.includes("v=")?u.split("v=")[1].split("&")[0]:u.split("/").pop();
-  player.src="https://www.youtube.com/embed/"+id;
+  document.getElementById("player").src="https://www.youtube.com/embed/"+id;
 }
 
 /* 🎮 GAMES */
@@ -139,6 +185,5 @@ function openGames(){
   window.open("game.html","_blank");
 }
 </script>
-
 </body>
 </html>
