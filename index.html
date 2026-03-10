@@ -4,24 +4,27 @@
 <meta charset="UTF-8">
 <title>Learning Hub</title>
 <style>
-body{margin:0;font-family:Arial;background:#0f172a;color:white;}
+body{margin:0;font-family:Arial,sans-serif;background:#0f172a;color:white;}
 .sidebar{width:220px;background:#020617;padding:20px;position:fixed;top:0;bottom:0;}
 .sidebar button{width:100%;margin-bottom:10px;padding:10px;background:#1e293b;color:white;border:none;border-radius:6px;cursor:pointer;}
 .sidebar button:hover{background:#334155;}
 .content{margin-left:240px;padding:40px;background:#1f2937;min-height:100vh;}
-#editor,#chatMessages{background:white;color:black;border:1px solid #ccc;padding:20px;min-height:300px;overflow-y:auto;}
-input,button{padding:8px;margin-top:10px;}
+#editor,#chatMessages{background:white;color:black;border:1px solid #ccc;padding:20px;min-height:300px;overflow-y:auto;border-radius:6px;}
+input,button{padding:8px;margin-top:10px;border-radius:4px;}
 #documentView{width:100vw;height:100vh;background:#f8fafc;display:flex;align-items:center;justify-content:center;color:black;}
 .docPage{width:800px;background:white;padding:60px;box-shadow:0 15px 40px rgba(0,0,0,.25);}
 .shake{animation:shake .3s;}
 @keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-6px)}100%{transform:translateX(0)}}
+/* Chat message styling like Discord */
+.chat-msg{margin-bottom:12px; padding:5px 8px; border-radius:6px; background:#2a2a3c;}
+.chat-msg .time{font-size:0.7em; color:#a1a1a1;}
+.chat-msg .nick{color:#34d399; font-weight:bold; margin-top:2px;}
 </style>
 
-<!-- Firebase compat scripts -->
+<!-- Firebase compat -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-// 🔥 Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
   authDomain: "learning-history-1bfd5.firebaseapp.com",
@@ -57,7 +60,7 @@ const db = firebase.database();
 </div>
 
 <script>
-// 🔐 Unlock app
+// Unlock app
 let clicks=0;
 document.getElementById("unlockTrigger").onclick=()=>{
   clicks++;
@@ -68,7 +71,7 @@ document.getElementById("unlockTrigger").onclick=()=>{
   }
 };
 
-// 📄 Document editor
+// Document editor
 function openDoc(){
   content.innerHTML=`
     <h2>Document</h2>
@@ -79,13 +82,12 @@ function openDoc(){
   const editBtn = document.getElementById("editBtn");
   const docRef = db.ref("document");
 
-  // Load content live
+  // Live load
   docRef.on("value", snap=>{
     const val = snap.val() || "";
     if(val!==ed.innerHTML && !ed.isContentEditable) ed.innerHTML = val;
   });
 
-  // Unlock editing
   editBtn.onclick = ()=>{
     const code = prompt("Enter edit code:");
     if(code==="1219"){
@@ -98,7 +100,6 @@ function openDoc(){
     }
   };
 
-  // Save on stop typing
   let typingTimer;
   ed.addEventListener("input", ()=>{
     if(!ed.isContentEditable) return;
@@ -107,21 +108,21 @@ function openDoc(){
   });
 }
 
-// 💬 Discord-style Chat
+// Discord-style Chat
 function openChat() {
   let nickname = localStorage.getItem("nickname");
-  if (!nickname) {
+  if(!nickname){
     nickname = prompt("Enter your nickname:") || "Anonymous";
     localStorage.setItem("nickname", nickname);
   }
 
-  content.innerHTML = `
+  content.innerHTML=`
     <h2>Chat</h2>
     <div style="margin-bottom:10px;">
       <button id="changeNickBtn">Change Nickname</button>
       <button id="clearBtn">Clear Chat</button>
     </div>
-    <div id="chatMessages" style="max-height:400px; overflow-y:auto; border:1px solid #ccc; padding:10px; background:#1e1e2f; color:white;"></div>
+    <div id="chatMessages" style="max-height:400px;overflow-y:auto;"></div>
     <input id="msg" placeholder="Type a message" style="width:80%"><button id="sendBtn">Send</button>
   `;
 
@@ -130,36 +131,29 @@ function openChat() {
   const sendBtn = document.getElementById("sendBtn");
   const changeNickBtn = document.getElementById("changeNickBtn");
   const clearBtn = document.getElementById("clearBtn");
+  let lastSent=0;
 
-  let lastSent = 0;
-
-  // Load previous messages once (Discord-style)
-  db.ref("chat").once("value", snap => {
-    const msgs = snap.val() || {};
-    const keys = Object.keys(msgs);
-    keys.forEach(k => {
-      const m = msgs[k];
-      const p = document.createElement("p");
-      p.innerHTML = `<span style="color:#34d399"><b>${m.nick}</b></span> [${m.time}]: ${m.msg}`;
-      p.style.marginBottom="6px";
+  // Load messages once (Discord-style)
+  db.ref("chat").once("value", snap=>{
+    const msgs = snap.val()||{};
+    Object.values(msgs).forEach(m=>{
+      const p = document.createElement("div");
+      p.className="chat-msg";
+      p.innerHTML=`<div class="time">${m.time}</div><div class="nick">${m.nick}</div>${m.msg}`;
       box.appendChild(p);
     });
     box.scrollTop = box.scrollHeight;
   });
 
-  // Send message with 1-second cooldown
-  sendBtn.onclick = () => {
+  // Send message
+  sendBtn.onclick = ()=>{
     const now = Date.now();
-    if(now - lastSent < 1000){
-      alert("Slow down!");
-      return;
-    }
+    if(now-lastSent<1000){alert("Slow down!");return;}
     if(!input.value.trim()) return;
     const time = new Date().toLocaleTimeString();
-    db.ref("chat").push({nick:nickname, msg:input.value.trim(), time});
+    db.ref("chat").push({nick:nickname,msg:input.value.trim(),time});
     input.value="";
     lastSent = now;
-    // auto-scroll
     setTimeout(()=>box.scrollTop = box.scrollHeight,50);
   };
   input.addEventListener("keydown", e=>{if(e.key==="Enter") sendBtn.click();});
@@ -169,26 +163,18 @@ function openChat() {
     const code = prompt("Enter code to change nickname:");
     if(code==="4293"){
       const newNick = prompt("Enter new nickname:");
-      if(newNick){
-        nickname=newNick;
-        localStorage.setItem("nickname", nickname);
-        alert("Nickname changed!");
-      }
+      if(newNick){nickname=newNick; localStorage.setItem("nickname",nickname); alert("Nickname changed!");}
     } else alert("Wrong code!");
   };
 
-  // Clear chat (secret code only you know)
+  // Clear chat (secret)
   clearBtn.onclick = ()=>{
     const code = prompt("Enter secret code to clear chat:");
-    if(code==="Ethandagod"){
-      db.ref("chat").remove();
-      box.innerHTML="";
-      alert("Chat cleared!");
-    }
+    if(code==="Ethandagod"){db.ref("chat").remove(); box.innerHTML=""; alert("Chat cleared!");}
   };
 }
 
-// ▶️ YouTube
+// YouTube embed
 function openYT(){
   content.innerHTML=`
     <input id="yt" placeholder="YouTube URL"><button onclick="embed()">Embed</button>
@@ -201,10 +187,8 @@ function embed(){
   document.getElementById("player").src="https://www.youtube.com/embed/"+id;
 }
 
-// 🎮 Games
-function openGames(){
-  window.open("game.html","_blank");
-}
+// Games
+function openGames(){window.open("game.html","_blank");}
 </script>
 </body>
 </html>
