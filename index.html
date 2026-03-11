@@ -98,6 +98,28 @@ firebase.database().ref().keepSynced(true);
 </div>
 
 <script>
+/* ===== TIME FORMAT (DISCORD STYLE) ===== */
+function formatTime(ts){
+  const d=new Date(ts);
+  const now=new Date();
+
+  const h=d.getHours()%12||12;
+  const m=d.getMinutes().toString().padStart(2,"0");
+  const ap=d.getHours()>=12?"pm":"am";
+
+  const today=new Date(now);
+  const yesterday=new Date(now);
+  yesterday.setDate(now.getDate()-1);
+
+  if(d.toDateString()===today.toDateString())
+    return `Today at ${h}:${m}${ap}`;
+
+  if(d.toDateString()===yesterday.toDateString())
+    return `Yesterday at ${h}:${m}${ap}`;
+
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
+}
+
 /* ===== OFFLINE ===== */
 const banner=document.getElementById("statusBanner");
 firebase.database().ref(".info/connected").on("value",s=>{
@@ -111,15 +133,13 @@ firebase.database().ref(".info/connected").on("value",s=>{
 });
 
 /* ===== QUIZ ===== */
-const Q=[
-["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],
+const Q=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],
 ["15% of 200","30"],["-5+12","7"],["6²÷3","12"],
 ["Area 5×4","20"],["Perimeter square 6","24"],
 ["2x=18","9"],["9³","729"],["1/2 of 3/4","3/8"],
 ["10⁻¹","0.1"],["Mean of 2,4,6","4"],
 ["5x=25","5"],["√144","12"],["7+(-3)","4"],
-["20% of 50","10"],["x+7=12","5"],["3×(4+2)","18"]
-];
+["20% of 50","10"],["x+7=12","5"],["3×(4+2)","18"]];
 let i=0,score=0;
 function load(){q.textContent=Q[i][0];n.textContent=i+1;a.value="";feedback.textContent=""}
 load();
@@ -187,7 +207,8 @@ function openChat(){
 
   db.ref("typing").on("value",s=>{
     const t=s.val()||{};
-    typing.textContent=Object.keys(t).filter(x=>x!==nick).join(", ")+" is typing…";
+    const names=Object.keys(t).filter(x=>x!==nick);
+    typing.textContent=names.length?`${names.join(", ")} is typing…`:"";
   });
 
   db.ref("chat").off();
@@ -195,7 +216,10 @@ function openChat(){
     const m=s.val();
     const d=document.createElement("div");
     d.className="chat-msg";
-    d.innerHTML=`<div class="time">${new Date(m.t).toLocaleString()}</div><div class="nick">${m.n}</div>${m.m}`;
+    d.innerHTML=`
+      <div class="time">${formatTime(m.t)}</div>
+      <div class="nick">${m.n}</div>
+      ${m.m}`;
     chatMessages.appendChild(d);
     chatMessages.scrollTop=chatMessages.scrollHeight;
   });
@@ -227,7 +251,7 @@ function kickUser(){
   if(u) db.ref("kicked/"+u).set(true);
 }
 
-/* ===== OTHER ===== */
+/* OTHER */
 function openYT(){content.innerHTML="<p>YouTube here</p>"}
 function openGames(){window.open("game.html","_blank")}
 function openProxy(){
