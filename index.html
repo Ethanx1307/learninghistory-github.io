@@ -2,267 +2,223 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Year 8 Maths Practice</title>
+<title>Study Notes</title>
 
 <style>
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
-
-/* STATUS */
-#statusBanner{
-  position:fixed;top:0;left:0;right:0;
-  background:#f59e0b;color:black;
-  text-align:center;padding:6px;
-  display:none;z-index:9999
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #2b2d31;
+  color: white;
 }
 
-/* QUIZ */
-#quiz{
-  max-width:720px;margin:80px auto;background:#111;
-  padding:40px;border-radius:12px
+/* TOP BAR */
+header {
+  display: flex;
+  background: #1e1f22;
 }
-input,button{padding:10px;font-size:15px;margin-top:8px;border-radius:6px}
-#feedback{font-weight:bold}
 
-/* APP */
-#app{display:none}
-.sidebar{
-  width:220px;background:#1e1e2f;padding:20px;
-  position:fixed;top:0;bottom:0
+header button {
+  flex: 1;
+  padding: 12px;
+  background: none;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
 }
-.sidebar button{
-  width:100%;margin-bottom:10px;padding:12px;
-  background:#2c2f33;color:white;border:none;border-radius:8px
+
+header button.active,
+header button:hover {
+  background: #313338;
+  color: white;
 }
-.sidebar button:hover{background:#40444b}
-.content{
-  margin-left:240px;padding:40px;
-  min-height:100vh;background:#0f0f0f
+
+/* SECTIONS */
+section {
+  display: none;
+  padding: 10px;
+}
+
+section.active {
+  display: block;
 }
 
 /* CHAT */
-.chat-msg{background:#2c2f33;padding:8px;margin-bottom:8px;border-radius:6px}
-.time{font-size:.75em;color:#9ca3af}
-.nick{color:#43b581;font-weight:bold}
-#typing{font-size:.8em;color:#9ca3af;margin:6px 0}
-#chatMessages{max-height:360px;overflow-y:auto}
+#chatBox {
+  height: 300px;
+  overflow-y: auto;
+  background: #313338;
+  padding: 10px;
+  border-radius: 6px;
+}
 
-/* DOC */
-#editor{background:#1e1e2f;border-radius:8px;padding:16px}
+.msg {
+  margin-bottom: 10px;
+}
 
-/* PROXY */
-.proxy-bar{display:flex;gap:10px;margin-bottom:10px}
-.proxy-bar input{flex:1}
-iframe{width:100%;height:420px;border:none;border-radius:8px}
+.time {
+  font-size: 11px;
+  color: #aaa;
+}
+
+.name {
+  font-weight: bold;
+  color: #57a4ff;
+}
+
+input {
+  width: 70%;
+  padding: 8px;
+  border-radius: 5px;
+  border: none;
+}
+
+button {
+  padding: 8px;
+  border-radius: 5px;
+  border: none;
+  background: #5865f2;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: 0.85;
+}
+
+/* YOUTUBE */
+iframe {
+  width: 100%;
+  height: 300px;
+  border-radius: 8px;
+  border: none;
+}
 </style>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script>
-firebase.initializeApp({
-  apiKey:"AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
-  authDomain:"learning-history-1bfd5.firebaseapp.com",
-  databaseURL:"https://learning-history-1bfd5-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId:"learning-history-1bfd5"
-});
-const db=firebase.database();
-firebase.database().ref().keepSynced(true);
-</script>
 </head>
 
 <body>
 
-<div id="statusBanner">Offline</div>
+<header>
+  <button class="active" onclick="openTab('notes')">Notes</button>
+  <button onclick="openTab('chat')">Chat</button>
+  <button onclick="openTab('youtube')">YouTube</button>
+</header>
 
-<!-- QUIZ -->
-<div id="quiz">
-  <h1>Year 8 Maths Quiz</h1>
-  <p id="q"></p>
-  <input id="a" placeholder="Type answer">
-  <button onclick="submit()">Submit</button>
-  <div id="feedback"></div>
-  <p>Question <span id="n"></span>/20</p>
-</div>
+<!-- NOTES -->
+<section id="notes" class="active">
+  <h2>Year 8 Maths Notes</h2>
+  <ul>
+    <li>Negative × Negative = Positive</li>
+    <li>½ of ¾ = ⅜</li>
+    <li>a⁻¹ = 1 ÷ a</li>
+  </ul>
+</section>
 
-<!-- APP -->
-<div id="app">
-  <div class="sidebar">
-    <button onclick="openDoc()">📄 Document</button>
-    <button onclick="openChat()">💬 Chat</button>
-    <button onclick="openYT()">▶️ YouTube</button>
-    <button onclick="openGames()">🎮 Games</button>
-    <button onclick="openProxy()">🌐 Proxy</button>
+<!-- CHAT -->
+<section id="chat">
+  <div>
+    <button onclick="changeName()">Change Nickname</button>
+    <button onclick="clearChat()">Clear Chat</button>
   </div>
-  <div class="content" id="content"></div>
-</div>
+
+  <div id="chatBox"></div>
+
+  <input id="msgInput" placeholder="Message">
+  <button onclick="sendMsg()">Send</button>
+</section>
+
+<!-- YOUTUBE -->
+<section id="youtube">
+  <input id="ytInput" placeholder="Paste YouTube link here">
+  <button onclick="loadYT()">Load Video</button>
+  <br><br>
+  <iframe id="ytFrame"></iframe>
+</section>
 
 <script>
-/* ===== TIME FORMAT (DISCORD STYLE) ===== */
-function formatTime(ts){
-  const d=new Date(ts);
-  const now=new Date();
+let nickname = localStorage.getItem("nickname") || "Ethan";
+let messages = JSON.parse(localStorage.getItem("messages")) || [];
 
-  const h=d.getHours()%12||12;
-  const m=d.getMinutes().toString().padStart(2,"0");
-  const ap=d.getHours()>=12?"pm":"am";
-
-  const today=new Date(now);
-  const yesterday=new Date(now);
-  yesterday.setDate(now.getDate()-1);
-
-  if(d.toDateString()===today.toDateString())
-    return `Today at ${h}:${m}${ap}`;
-
-  if(d.toDateString()===yesterday.toDateString())
-    return `Yesterday at ${h}:${m}${ap}`;
-
-  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
+function openTab(id) {
+  document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll("header button").forEach(b => b.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  event.target.classList.add("active");
 }
 
-/* ===== OFFLINE ===== */
-const banner=document.getElementById("statusBanner");
-firebase.database().ref(".info/connected").on("value",s=>{
-  if(!s.val()){
-    banner.style.display="block";
-    banner.textContent="⚠️ You are offline";
-  }else{
-    banner.textContent="✅ Back online";
-    setTimeout(()=>banner.style.display="none",1200);
-  }
-});
+function formatTime(date) {
+  const now = new Date();
+  const d = new Date(date);
 
-/* ===== QUIZ ===== */
-const Q=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],
-["15% of 200","30"],["-5+12","7"],["6²÷3","12"],
-["Area 5×4","20"],["Perimeter square 6","24"],
-["2x=18","9"],["9³","729"],["1/2 of 3/4","3/8"],
-["10⁻¹","0.1"],["Mean of 2,4,6","4"],
-["5x=25","5"],["√144","12"],["7+(-3)","4"],
-["20% of 50","10"],["x+7=12","5"],["3×(4+2)","18"]];
-let i=0,score=0;
-function load(){q.textContent=Q[i][0];n.textContent=i+1;a.value="";feedback.textContent=""}
-load();
-function submit(){
-  const v=a.value.trim().toLowerCase();
-  if(v==="opensesame"||v==="open sesame"){
-    quiz.style.display="none";app.style.display="block";openChat();return;
-  }
-  if(v===Q[i][1]){score++;feedback.textContent="Correct!"}
-  else feedback.textContent="Incorrect";
-  i++;i<20?setTimeout(load,400):finish();
-}
-function finish(){
-  quiz.innerHTML=`<h1>Score</h1><h2>${score}/20</h2><button onclick="location.reload()">Retry</button>`;
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+  const diffDays = Math.floor((now - d) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return `Today at ${time}`;
+  if (diffDays === 1) return `Yesterday at ${time}`;
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${time}`;
 }
 
-/* ===== DOCUMENT ===== */
-function openDoc(){
-  content.innerHTML=`
-  <h2>Document</h2>
-  <button id="read">Unlock Reading</button>
-  <button id="edit">Unlock Editing</button>
-  <div id="editor">Locked</div>`;
-  const ed=editor;
-  ed.contentEditable=false;
-
-  read.onclick=()=>{
-    if(prompt("Read code")!=="12345678h") return alert("Wrong");
-    db.ref("doc").on("value",s=>ed.innerHTML=s.val()||"");
-  };
-  edit.onclick=()=>{
-    if(prompt("Edit code")!=="1219") return alert("Wrong");
-    ed.contentEditable=true;
-    ed.oninput=()=>db.ref("doc").set(ed.innerHTML);
-  };
+function renderChat() {
+  const box = document.getElementById("chatBox");
+  box.innerHTML = "";
+  messages.forEach(m => {
+    box.innerHTML += `
+      <div class="msg">
+        <div class="time">${formatTime(m.time)}</div>
+        <span class="name">${m.name}</span>: ${m.text}
+      </div>`;
+  });
+  box.scrollTop = box.scrollHeight;
 }
 
-/* ===== CHAT ===== */
-let isAdmin=localStorage.isAdmin==="true";
-function openChat(){
-  let nick=localStorage.nick||prompt("Nickname")||"Anon";
-  localStorage.nick=nick;
+function sendMsg() {
+  const input = document.getElementById("msgInput");
+  if (!input.value) return;
 
-  db.ref("kicked/"+nick).once("value",s=>{
-    if(s.exists()){
-      content.innerHTML="<h2>You were kicked.</h2>";
-      throw "kicked";
-    }
+  messages.push({
+    name: nickname,
+    text: input.value,
+    time: new Date()
   });
 
-  content.innerHTML=`
-  <h2>Chat</h2>
-  <div id="typing"></div>
-  <button onclick="adminLogin()">Admin</button>
-  <button onclick="kickUser()" id="kickBtn" ${isAdmin?"":"disabled"}>Kick</button>
-  <button onclick="clearChat()">Clear</button>
-  <div id="chatMessages"></div>
-  <input id="msg"><button onclick="send()">Send</button>`;
-
-  const typingRef=db.ref("typing/"+nick);
-  msg.oninput=()=>{
-    typingRef.set(true);
-    setTimeout(()=>typingRef.remove(),1200);
-  };
-
-  db.ref("typing").on("value",s=>{
-    const t=s.val()||{};
-    const names=Object.keys(t).filter(x=>x!==nick);
-    typing.textContent=names.length?`${names.join(", ")} is typing…`:"";
-  });
-
-  db.ref("chat").off();
-  db.ref("chat").on("child_added",s=>{
-    const m=s.val();
-    const d=document.createElement("div");
-    d.className="chat-msg";
-    d.innerHTML=`
-      <div class="time">${formatTime(m.t)}</div>
-      <div class="nick">${m.n}</div>
-      ${m.m}`;
-    chatMessages.appendChild(d);
-    chatMessages.scrollTop=chatMessages.scrollHeight;
-  });
-
-  window.send=()=>{
-    if(!msg.value)return;
-    typingRef.remove();
-    db.ref("chat").push({n:nick,m:msg.value,t:Date.now()});
-    msg.value="";
-  };
+  localStorage.setItem("messages", JSON.stringify(messages));
+  input.value = "";
+  renderChat();
 }
 
-/* ADMIN */
-function adminLogin(){
-  if(prompt("Admin code")==="Ethandagod@1"){
-    isAdmin=true;
-    localStorage.isAdmin="true";
-    alert("Admin enabled");
-    kickBtn.disabled=false;
+function changeName() {
+  const n = prompt("Enter new nickname:");
+  if (n) {
+    nickname = n;
+    localStorage.setItem("nickname", n);
   }
 }
-function clearChat(){
-  if(!isAdmin) return alert("Admin only");
-  db.ref("chat").remove();
-}
-function kickUser(){
-  if(!isAdmin) return;
-  const u=prompt("Kick username");
-  if(u) db.ref("kicked/"+u).set(true);
+
+function clearChat() {
+  if (confirm("Clear all chat messages?")) {
+    messages = [];
+    localStorage.removeItem("messages");
+    renderChat();
+  }
 }
 
-/* OTHER */
-function openYT(){content.innerHTML="<p>YouTube here</p>"}
-function openGames(){window.open("game.html","_blank")}
-function openProxy(){
-  content.innerHTML=`
-  <h2>Research Viewer</h2>
-  <div class="proxy-bar">
-    <input id="u" value="https://geography.callcentercuritiba.com.br/">
-    <button onclick="f.src=u.value">Go</button>
-  </div>
-  <iframe id="f" src="https://geography.callcentercuritiba.com.br/"></iframe>`;
+function loadYT() {
+  let url = document.getElementById("ytInput").value;
+  let id = "";
+
+  if (url.includes("watch?v=")) {
+    id = url.split("watch?v=")[1].split("&")[0];
+  } else if (url.includes("youtu.be/")) {
+    id = url.split("youtu.be/")[1];
+  }
+
+  document.getElementById("ytFrame").src =
+    "https://www.youtube.com/embed/" + id;
 }
+
+renderChat();
 </script>
+
 </body>
 </html>
