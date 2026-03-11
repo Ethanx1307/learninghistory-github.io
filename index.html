@@ -65,10 +65,9 @@ let nickname = localStorage.getItem("nickname");
 
 /* CHAT COOLDOWN */
 let lastSent = 0;
-const COOLDOWN = 2000;
+const COOLDOWN = 1000; // 1 second
 
 function openChat(){
-  // Ask for nickname if not set
   if(!nickname){
     nickname = prompt("Choose a nickname:") || "Anonymous";
     localStorage.setItem("nickname", nickname);
@@ -86,7 +85,6 @@ function openChat(){
   const box = document.getElementById("chatMessages");
   box.innerHTML = "";
 
-  // Listen for chat messages
   db.ref("chat").off();
   db.ref("chat").on("child_added", snap => {
     const m = snap.val();
@@ -97,7 +95,6 @@ function openChat(){
     box.scrollTop = box.scrollHeight;
   });
 
-  // Enter key sends message
   document.getElementById("msg").addEventListener("keydown", e=>{
     if(e.key==="Enter"){ e.preventDefault(); sendMsg(); }
   });
@@ -120,7 +117,18 @@ function sendMsg(){
 }
 
 function formatTime(ts){
-  return new Date(ts).toLocaleString();
+  const d = new Date(ts);
+  const now = new Date();
+  const h = d.getHours() % 12 || 12;
+  const m = d.getMinutes().toString().padStart(2,"0");
+  const ampm = d.getHours()<12 ? "am":"pm";
+  const diff = now - d;
+
+  if(diff < 86400000 && now.getDate() === d.getDate())
+    return `Today at ${h}:${m}${ampm}`;
+  if(diff < 172800000 && now.getDate() !== d.getDate())
+    return `Yesterday at ${h}:${m}${ampm}`;
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ampm}`;
 }
 
 function changeNick(){
@@ -140,8 +148,8 @@ function clearChat(){
 
 /* 📄 DOCUMENT */
 function openDoc(){
-  const code = prompt("Access code")||"";
-  if(code.toLowerCase()==="opensesame" || code.toLowerCase()==="open sesame" || code==="12345678h"){
+  const code = prompt("Document access code:")||"";
+  if(code==="12345678h"){
     content.innerHTML=`
       <h2>Document</h2>
       <button onclick="unlockEdit()">Unlock Editing</button>
@@ -155,7 +163,7 @@ function openDoc(){
       clearTimeout(t);
       t=setTimeout(()=>ref.set(ed.innerHTML),1200);
     });
-  } else alert("No access");
+  } else alert("Incorrect document code");
 }
 function unlockEdit(){ if(prompt("Edit code")==="1219") document.getElementById("editor").contentEditable="true"; }
 
