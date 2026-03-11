@@ -50,16 +50,9 @@ body {
   overflow-y:auto;
 }
 
-.msg {
-  margin-bottom:12px;
-}
-.msg .time {
-  font-size:11px;
-  color:#9ca3af;
-}
-.msg .name {
-  font-weight:bold;
-}
+.msg { margin-bottom:12px; }
+.msg .time { font-size:11px; color:#9ca3af; }
+.msg .name { font-weight:bold; }
 
 input {
   width:75%;
@@ -110,11 +103,13 @@ firebase.initializeApp({
 });
 const db = firebase.database();
 
+/* FIX */
+const content = document.getElementById("content");
+
 /* 👤 NICKNAME */
 let nickname = localStorage.getItem("nickname");
 if (!nickname) {
-  nickname = prompt("Choose a nickname:");
-  if (!nickname) nickname = "Anonymous";
+  nickname = prompt("Choose a nickname:") || "Anonymous";
   localStorage.setItem("nickname", nickname);
 }
 
@@ -122,38 +117,37 @@ if (!nickname) {
 const ADMIN_CODE = "Ethandagod@1";
 let isAdmin = localStorage.getItem("admin") === "true";
 
-function adminLogin() {
+function adminLogin(){
   const code = prompt("Admin code:");
-  if (code === ADMIN_CODE) {
+  if(code === ADMIN_CODE){
     localStorage.setItem("admin","true");
     isAdmin = true;
     alert("Admin enabled");
   }
 }
 
-/* 🚫 MUTE CHECK */
-function checkMuted(cb) {
-  db.ref("muted/" + nickname).once("value", snap => {
-    cb(snap.val() === true);
+/* 🚫 MUTE */
+function checkMuted(cb){
+  db.ref("muted/"+nickname).once("value",s=>{
+    cb(s.val() === true);
   });
 }
 
 /* ⏱ COOLDOWN */
 let lastSent = 0;
-const COOLDOWN = 1200;
+const COOLDOWN = 2000;
 
 /* 💬 CHAT */
-function openChat() {
+function openChat(){
   content.innerHTML = `
     <h2>Chat</h2>
     <div id="chatMessages"></div>
     <input id="msg" placeholder="Message">
-    <button onclick="sendMsg()">Send</button>
-    <br><br>
-    <button class="smallBtn" onclick="changeNick()">Change Nickname</button>
+    <button onclick="sendMsg()">Send</button><br><br>
+    <button class="smallBtn" onclick="changeNick()">Change Nick</button>
     <button class="smallBtn" onclick="adminLogin()">Admin</button>
     ${isAdmin ? `
-      <button class="smallBtn" onclick="clearChat()">Clear Chat</button>
+      <button class="smallBtn" onclick="clearChat()">Clear</button>
       <button class="smallBtn" onclick="muteUser()">Mute</button>
       <button class="smallBtn" onclick="unmuteUser()">Unmute</button>
     ` : ``}
@@ -163,7 +157,7 @@ function openChat() {
   box.innerHTML = "";
 
   db.ref("chat").off();
-  db.ref("chat").on("child_added", snap => {
+  db.ref("chat").on("child_added",snap=>{
     const m = snap.val();
     const div = document.createElement("div");
     div.className = "msg";
@@ -175,84 +169,61 @@ function openChat() {
     box.scrollTop = box.scrollHeight;
   });
 
-  document.getElementById("msg").addEventListener("keydown", e=>{
-    if(e.key==="Enter") sendMsg();
+  document.getElementById("msg").addEventListener("keydown",e=>{
+    if(e.key==="Enter"){
+      e.preventDefault();
+      sendMsg();
+    }
   });
 }
 
-function sendMsg() {
+function sendMsg(){
   const now = Date.now();
-  if (now - lastSent < COOLDOWN) {
-    alert("Slow down");
+  if(now - lastSent < COOLDOWN){
+    alert("Slow down your chat ⏱");
     return;
   }
 
   checkMuted(muted=>{
-    if(muted){
-      alert("You are muted");
-      return;
-    }
-    const input = document.getElementById("msg");
-    if (!input.value.trim()) return;
+    if(muted){ alert("You are muted"); return; }
+    const i = document.getElementById("msg");
+    if(!i.value.trim()) return;
     lastSent = now;
     db.ref("chat").push({
       nick:nickname,
-      msg:input.value.trim(),
+      msg:i.value.trim(),
       time:Date.now()
     });
-    input.value="";
+    i.value="";
   });
 }
 
-/* 🕒 TIME FORMAT */
 function formatTime(ts){
-  const d = new Date(ts);
-  const now = new Date();
-  const diff = now - d;
-  const h = d.getHours()%12 || 12;
-  const m = d.getMinutes().toString().padStart(2,"0");
-  const ampm = d.getHours()<12?"am":"pm";
-
-  if(diff < 86400000 && now.getDate()===d.getDate())
-    return `Today at ${h}:${m}${ampm}`;
-  if(diff < 172800000)
-    return `Yesterday at ${h}:${m}${ampm}`;
-  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ampm}`;
+  const d=new Date(ts);
+  return d.toLocaleString();
 }
 
-/* 🔧 MODERATION */
-function muteUser(){
-  const u = prompt("Mute who?");
-  if(u) db.ref("muted/"+u).set(true);
-}
-function unmuteUser(){
-  const u = prompt("Unmute who?");
-  if(u) db.ref("muted/"+u).remove();
-}
-function clearChat(){
-  if(confirm("Clear chat?")) db.ref("chat").remove();
-}
+/* MOD */
+function muteUser(){ const u=prompt("Mute who?"); if(u) db.ref("muted/"+u).set(true); }
+function unmuteUser(){ const u=prompt("Unmute who?"); if(u) db.ref("muted/"+u).remove(); }
+function clearChat(){ if(confirm("Clear chat?")) db.ref("chat").remove(); }
 function changeNick(){
-  if(prompt("Code")!=="4293") return alert("Wrong code");
-  const n = prompt("New nickname:");
-  if(n){
-    localStorage.setItem("nickname",n);
-    location.reload();
-  }
+  if(prompt("Code")!=="4293") return alert("Wrong");
+  const n=prompt("New nickname:");
+  if(n){ localStorage.setItem("nickname",n); location.reload(); }
 }
 
 /* 📄 DOCUMENT */
 function openDoc(){
   if(prompt("Access code")!=="12345678h") return alert("No access");
-  content.innerHTML = `
+  content.innerHTML=`
     <h2>Document</h2>
     <button onclick="unlockEdit()">Unlock Editing</button>
     <div id="editor" contenteditable="false"></div>
   `;
-  const ed = document.getElementById("editor");
-  const ref = db.ref("document");
+  const ed=document.getElementById("editor");
+  const ref=db.ref("document");
   ref.on("value",s=>{ if(s.val()) ed.innerHTML=s.val(); });
-
   let t;
   ed.addEventListener("input",()=>{
     clearTimeout(t);
@@ -282,20 +253,52 @@ function embed(){
 function openGames(){ window.open("game.html","_blank"); }
 
 /* 🎯 QUIZ */
-const quiz = [{q:"1/2 of 3/4?",a:"3/8"}];
-let qi=0;
-function submitQuiz(){
-  if(document.getElementById("ans").value.toLowerCase()==="opensesame"){
-    quizGate.style.display="none";
-    app.style.display="block";
-    openChat();
-  } else {
-    qi++;
-    document.getElementById("feedback").innerText="Next question...";
-  }
-}
-document.getElementById("qText").innerText=quiz[0].q;
-</script>
+let currentQ=0, correct=0, answer="";
 
+function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+function genQuestion(l){
+  let q,a;
+  if(l<10){
+    let x=rand(1,20),y=rand(1,20);
+    q=`${x} + ${y}`; a=(x+y)+"";
+  }else if(l<25){
+    let x=rand(2,12),y=rand(2,12);
+    q=`${x} × ${y}`; a=(x*y)+"";
+  }else if(l<40){
+    let x=rand(1,9),y=rand(2,9);
+    q=`${x}/${y} as decimal (2dp)`; a=(x/y).toFixed(2);
+  }else{
+    let x=rand(2,10),y=rand(1,10);
+    q=`Solve: ${x}x = ${x*y}`; a=y+"";
+  }
+  answer=a;
+  qText.innerText=`Question ${currentQ+1}/50: ${q}`;
+}
+
+function submitQuiz(){
+  const u=ans.value.trim();
+  if(u===answer){ correct++; feedback.innerText="Correct ✅"; }
+  else feedback.innerText=`Wrong ❌ (ans: ${answer})`;
+  ans.value="";
+  currentQ++;
+  if(correct>=50){
+    quizGate.innerHTML=`<h2>Access Granted 🎉</h2><p>Code: <b>opensesame</b></p>`;
+    setTimeout(()=>{
+      quizGate.style.display="none";
+      app.style.display="block";
+      openChat();
+    },1500);
+    return;
+  }
+  if(currentQ>=50){
+    feedback.innerText=`You got ${correct}/50. Refresh to retry.`;
+    return;
+  }
+  genQuestion(currentQ);
+}
+
+genQuestion(0);
+</script>
 </body>
 </html>
