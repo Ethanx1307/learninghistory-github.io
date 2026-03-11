@@ -10,11 +10,6 @@ body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
 #feedback{font-weight:bold;margin-top:10px;color:#fbb}
 /* APP */
 #app{display:none}
-header{display:flex;background:#1e1f22}
-header button{flex:1;padding:12px;background:none;border:none;color:#ccc;cursor:pointer}
-header button.active,header button:hover{background:#313338;color:white}
-section{display:none;padding:10px}
-section.active{display:block}
 .sidebar{width:220px;background:#1e1e2f;padding:20px;position:fixed;top:0;bottom:0}
 .sidebar button{width:100%;margin-bottom:10px;padding:12px;background:#2c2f33;color:white;border:none;border-radius:8px;cursor:pointer}
 .sidebar button:hover{background:#40444b}
@@ -45,20 +40,12 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 
 <!-- APP -->
 <section id="app">
-<header>
-<button class="active" onclick="openTab('doc')">Document</button>
-<button onclick="openTab('chat')">Chat</button>
-<button onclick="openTab('youtube')">YouTube</button>
-<button onclick="openTab('games')">Games</button>
-</header>
-
 <div class="sidebar">
 <button onclick="openDoc()">📄 Document</button>
 <button onclick="openChat()">💬 Chat</button>
 <button onclick="openYT()">▶️ YouTube</button>
 <button onclick="openGames()">🎮 Games</button>
 </div>
-
 <div class="content" id="content">Welcome!</div>
 </section>
 
@@ -104,12 +91,6 @@ function unlockApp(){
   document.getElementById("quiz").style.display="none";
   document.getElementById("app").style.display="block";
   openChat();
-}
-
-// ==== TAB SWITCH ====
-function openTab(id){
-  document.querySelectorAll(".content").forEach(c=>c.style.display="none");
-  document.getElementById("content").style.display="block";
 }
 
 // ==== DOCUMENT ====
@@ -158,7 +139,7 @@ function openChat(){
 }
 
 function changeName(){const n=prompt("Enter new nickname:");if(n){nickname=n;localStorage.setItem("nickname",n);}}
-function clearChat(){if(confirm("Clear chat?")){messages=[];localStorage.setItem("messages",JSON.stringify(messages));openChat();}}
+function clearChat(){if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong code"); messages=[];localStorage.setItem("messages",JSON.stringify(messages));openChat();}
 
 // ==== YOUTUBE ====
 function openYT(){content.innerHTML=`<input id="ytInput" placeholder="YouTube link"><button onclick="loadYT()">Load Video</button><br><br><iframe id="ytFrame"></iframe>`;}
@@ -167,6 +148,5 @@ function loadYT(){let url=document.getElementById("ytInput").value;let id="";if(
 // ==== GAMES ====
 function openGames(){window.open("game.html","_blank");}
 </script>
-
 </body>
 </html>
