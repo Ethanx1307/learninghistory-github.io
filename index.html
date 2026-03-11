@@ -18,7 +18,7 @@ input { width:75%; padding:8px; }
 button { padding:8px; }
 .smallBtn { font-size:12px; margin-left:5px; }
 /* Confetti effect */
-.confetti { position:fixed; width:10px; height:10px; background:gold; top:0; animation:fall 2s linear forwards; z-index:9999; }
+.confetti { position:fixed; width:10px; height:10px; top:0; animation:fall 2s linear forwards; z-index:9999; }
 @keyframes fall { to { transform: translateY(100vh) rotate(720deg); opacity:0; } }
 </style>
 </head>
@@ -61,8 +61,7 @@ const db = firebase.database();
 const content = document.getElementById("content");
 
 /* 👤 NICKNAME */
-let nickname = localStorage.getItem("nickname") || prompt("Choose a nickname:") || "Anonymous";
-localStorage.setItem("nickname", nickname);
+let nickname = localStorage.getItem("nickname");
 
 /* 👑 ADMIN */
 const ADMIN_CODE = "Ethandagod@1";
@@ -74,6 +73,12 @@ function checkMuted(cb){ db.ref("muted/"+nickname).once("value",s=>{ cb(s.val()=
 let lastSent=0; const COOLDOWN=2000;
 
 function openChat(){
+  // Ask for nickname here if not set
+  if(!nickname){
+    nickname = prompt("Choose a nickname:") || "Anonymous";
+    localStorage.setItem("nickname", nickname);
+  }
+
   content.innerHTML=`
     <h2>Chat</h2>
     <div id="chatMessages"></div>
@@ -106,7 +111,7 @@ function formatTime(ts){ return new Date(ts).toLocaleString(); }
 function muteUser(){ const u=prompt("Mute who?"); if(u) db.ref("muted/"+u).set(true); }
 function unmuteUser(){ const u=prompt("Unmute who?"); if(u) db.ref("muted/"+u).remove(); }
 function clearChat(){ if(confirm("Clear chat?")) db.ref("chat").remove(); }
-function changeNick(){ if(prompt("Code")!=="4293") return alert("Wrong"); const n=prompt("New nickname:"); if(n){ localStorage.setItem("nickname",n); location.reload(); } }
+function changeNick(){ const n=prompt("New nickname:"); if(n){ nickname=n; localStorage.setItem("nickname",n); openChat(); } }
 
 /* 📄 DOCUMENT */
 function openDoc(){
