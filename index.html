@@ -5,22 +5,20 @@
 <title>Learning Hub</title>
 <style>
 body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
+#quiz{max-width:720px;margin:60px auto;background:#111;padding:40px;border-radius:12px}
+#quiz input,#quiz button{padding:10px;font-size:15px;margin-top:8px;border-radius:6px}
+#feedback{font-weight:bold;margin-top:10px;color:#fbb}
+/* APP */
+#app{display:none}
 header{display:flex;background:#1e1f22}
 header button{flex:1;padding:12px;background:none;border:none;color:#ccc;cursor:pointer}
 header button.active,header button:hover{background:#313338;color:white}
 section{display:none;padding:10px}
 section.active{display:block}
-/* QUIZ */
-#quiz{max-width:720px;margin:80px auto;background:#111;padding:40px;border-radius:12px}
-#quiz input, #quiz button{padding:10px;font-size:15px;margin-top:8px;border-radius:6px}
-#feedback{font-weight:bold;margin-top:10px;color:#fbb}
-/* APP */
-#app{display:none}
 .sidebar{width:220px;background:#1e1e2f;padding:20px;position:fixed;top:0;bottom:0}
 .sidebar button{width:100%;margin-bottom:10px;padding:12px;background:#2c2f33;color:white;border:none;border-radius:8px;cursor:pointer}
 .sidebar button:hover{background:#40444b}
 .content{margin-left:240px;padding:40px;min-height:100vh;background:#0f0f0f}
-/* CHAT */
 #chatBox{max-height:360px;overflow-y:auto;background:#313338;padding:10px;border-radius:6px;margin-bottom:8px}
 .msg{margin-bottom:10px}
 .time{font-size:11px;color:#aaa}
@@ -29,19 +27,11 @@ input,button{padding:8px;margin-top:5px;border-radius:5px;border:none}
 input{width:70%}
 button{background:#5865f2;color:white;cursor:pointer}
 button:hover{opacity:0.85}
-/* DOCUMENT */
 #editor{background:#1e1e2f;border-radius:8px;padding:16px;min-height:200px}
-/* YOUTUBE */
 iframe{width:100%;height:300px;border-radius:8px;border:none}
 </style>
 </head>
 <body>
-
-<!-- HEADER -->
-<header>
-<button class="active" onclick="openTab('quiz')">Quiz</button>
-<button onclick="openTab('app')">App</button>
-</header>
 
 <!-- QUIZ -->
 <section id="quiz" class="active">
@@ -50,69 +40,79 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 <input id="a" placeholder="Type answer here">
 <button onclick="submitQ()">Submit</button>
 <div id="feedback"></div>
-<p>Question <span id="n"></span>/20</p>
+<p>Question <span id="n"></span>/50</p>
 </section>
 
 <!-- APP -->
 <section id="app">
+<header>
+<button class="active" onclick="openTab('doc')">Document</button>
+<button onclick="openTab('chat')">Chat</button>
+<button onclick="openTab('youtube')">YouTube</button>
+<button onclick="openTab('games')">Games</button>
+</header>
+
 <div class="sidebar">
 <button onclick="openDoc()">📄 Document</button>
 <button onclick="openChat()">💬 Chat</button>
 <button onclick="openYT()">▶️ YouTube</button>
 <button onclick="openGames()">🎮 Games</button>
 </div>
+
 <div class="content" id="content">Welcome!</div>
 </section>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-// FIREBASE
-const firebaseConfig = {
-  apiKey:"AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
-  authDomain:"learning-history-1bfd5.firebaseapp.com",
-  databaseURL:"https://learning-history-1bfd5-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId:"learning-history-1bfd5",
-  storageBucket:"learning-history-1bfd5.appspot.com",
-  messagingSenderId:"231811778288",
-  appId:"1:231811778288:web:d112859a8bc6143fffa435"
-};
+// Firebase
+const firebaseConfig={apiKey:"AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",authDomain:"learning-history-1bfd5.firebaseapp.com",databaseURL:"https://learning-history-1bfd5-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"learning-history-1bfd5",storageBucket:"learning-history-1bfd5.appspot.com",messagingSenderId:"231811778288",appId:"1:231811778288:web:d112859a8bc6143fffa435"};
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-/* ==== TAB SWITCH ==== */
-function openTab(id){
-  document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
-  document.querySelectorAll("header button").forEach(b=>b.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  if(event) event.target.classList.add("active");
-}
+// ==== QUIZ ====
+let questions=[
+["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"],["-5+12","7"],["6²÷3","12"],["Area 5×4","20"],["Perimeter square 6","24"],["2x=18","9"],
+["9³","729"],["1/2 of 3/4","3/8"],["10⁻¹","0.1"],["Mean of 2,4,6","4"],["5x=25","5"],["√144","12"],["7+(-3)","4"],["20% of 50","10"],["x+7=12","5"],["3×(4+2)","18"],
+["8×9","72"],["64÷8","8"],["5²+3","28"],["√196","14"],["10% of 150","15"],["-3×6","-18"],["12÷4+3","6"],["Area triangle 6×5÷2","15"],["Perimeter rect 5×3","16"],["2x+5=15","5"],["11³","1331"],
+["3/4 + 1/2","5/4"],["10⁰","1"],["Median of 3,7,9","7"],["4x=32","8"],["√225","15"],["8+(-5)","3"],["25% of 80","20"],["y+10=25","15"],["6×(3+2)","30"],["13×7","91"],["144÷12","12"],["9²-16","65"],
+["5³","125"],["1/3 of 9","3"],["-12+8","-4"],["7²+1","50"],["√64","8"],["50% of 120","60"],["x-7=14","21"],["6×6÷3","12"],["4²×2","32"],["9+(-7)","2"],["8²-20","44"]
+];
+questions.sort(()=>Math.random()-0.5);
 
-/* ==== QUIZ ==== */
-const Q=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"],["-5+12","7"],["6²÷3","12"],["Area 5×4","20"],["Perimeter square 6","24"],["2x=18","9"],["9³","729"],["1/2 of 3/4","3/8"],["10⁻¹","0.1"],["Mean of 2,4,6","4"],["5x=25","5"],["√144","12"],["7+(-3)","4"],["20% of 50","10"],["x+7=12","5"],["3×(4+2)","18"]];
 let i=0,score=0;
-function loadQ(){q.textContent=Q[i][0];n.textContent=i+1;a.value="";feedback.textContent=""}
+const q=document.getElementById("q"),a=document.getElementById("a"),feedback=document.getElementById("feedback"),n=document.getElementById("n");
+function loadQ(){q.textContent=questions[i][0];n.textContent=i+1;a.value="";feedback.textContent="";}
 loadQ();
+
 function submitQ(){
   const v=a.value.trim().toLowerCase();
-  if(v==="opensesame"||v==="open sesame"){
-    quiz.style.display="none";
-    app.style.display="block";
-    openChat();
-    return;
-  }
-  if(v===Q[i][1]){score++;feedback.textContent="Correct!"}
-  else feedback.textContent="Incorrect";
+  if(v==="opensesame"||v==="open sesame"){unlockApp();return;}
+  if(v===questions[i][1]){score++;feedback.textContent="Correct!"}else{feedback.textContent="Incorrect";}
   i++;
-  if(i<20) setTimeout(loadQ,400);
-  else finishQ();
-}
-function finishQ(){
-  quiz.innerHTML=`<h1>Score</h1><h2>${score}/20</h2>
-  <button onclick="location.reload()">Retry</button>`;
+  if(i<50){setTimeout(loadQ,400);}else{finishQ();}
 }
 
-/* ==== DOCUMENT ==== */
+function finishQ(){
+  let result=`<h1>Score</h1><h2>${score}/50</h2>`;
+  if(score===50) result+=`<p>Secret code: <b>opensesame</b></p>`;
+  result+=`<button onclick="location.reload()">Retry</button>`;
+  quiz.innerHTML=result;
+}
+
+function unlockApp(){
+  document.getElementById("quiz").style.display="none";
+  document.getElementById("app").style.display="block";
+  openChat();
+}
+
+// ==== TAB SWITCH ====
+function openTab(id){
+  document.querySelectorAll(".content").forEach(c=>c.style.display="none");
+  document.getElementById("content").style.display="block";
+}
+
+// ==== DOCUMENT ====
 function openDoc(){
   content.innerHTML=`<h2>Document</h2>
   <button id="readBtn">Unlock Reading</button>
@@ -120,33 +120,19 @@ function openDoc(){
   <div id="editor">Locked</div>`;
   const ed=document.getElementById("editor");
   ed.contentEditable=false;
-
-  readBtn.onclick=()=>{
-    if(prompt("Enter read code")!=="12345678h") return alert("Wrong");
-    db.ref("doc").on("value",s=>ed.innerHTML=s.val()||"");
-  };
-  editBtn.onclick=()=>{
-    if(prompt("Enter edit code")!=="1219") return alert("Wrong");
-    ed.contentEditable=true;
-    ed.addEventListener("input",()=>db.ref("doc").set(ed.innerHTML));
-  };
+  readBtn.onclick=()=>{if(prompt("Enter read code")!=="12345678h") return alert("Wrong"); db.ref("doc").on("value",s=>ed.innerHTML=s.val()||"");};
+  editBtn.onclick=()=>{if(prompt("Enter edit code")!=="1219") return alert("Wrong"); ed.contentEditable=true; ed.addEventListener("input",()=>db.ref("doc").set(ed.innerHTML));};
 }
 
-/* ==== CHAT ==== */
+// ==== CHAT ====
 let nickname = localStorage.getItem("nickname") || "Ethan";
 let messages = JSON.parse(localStorage.getItem("messages")) || [];
-
 function formatTime(ts){
-  const d=new Date(ts);
-  const now=new Date();
+  const d=new Date(ts);const now=new Date();
   const h=d.getHours()%12||12;
   const m=d.getMinutes().toString().padStart(2,"0");
   const ap=d.getHours()>=12?"pm":"am";
-
-  const today=new Date();
-  const yesterday=new Date();
-  yesterday.setDate(today.getDate()-1);
-
+  const today=new Date();const yesterday=new Date();yesterday.setDate(today.getDate()-1);
   if(d.toDateString()===today.toDateString()) return `Today at ${h}:${m}${ap}`;
   if(d.toDateString()===yesterday.toDateString()) return `Yesterday at ${h}:${m}${ap}`;
   return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
@@ -163,51 +149,24 @@ function openChat(){
 
   function render(){
     chatBox.innerHTML="";
-    messages.forEach(m=>{
-      chatBox.innerHTML+=`<div class="msg"><div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}</div>`;
-    });
+    messages.forEach(m=>{chatBox.innerHTML+=`<div class="msg"><div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}</div>`});
     chatBox.scrollTop=chatBox.scrollHeight;
   }
-
   render();
-
-  msgInput.addEventListener("keydown",e=>{
-    if(e.key==="Enter") sendMsg();
-  });
-
-  window.sendMsg=function(){
-    if(!msgInput.value) return;
-    messages.push({name:nickname,text:msgInput.value,time:new Date()});
-    localStorage.setItem("messages",JSON.stringify(messages));
-    msgInput.value="";
-    render();
-  }
+  msgInput.addEventListener("keydown",e=>{if(e.key==="Enter") sendMsg();});
+  window.sendMsg=function(){if(!msgInput.value) return;messages.push({name:nickname,text:msgInput.value,time:new Date()});localStorage.setItem("messages",JSON.stringify(messages));msgInput.value="";render();}
 }
 
-function changeName(){
-  const n=prompt("Enter new nickname:");
-  if(n){nickname=n;localStorage.setItem("nickname",n);}
-}
+function changeName(){const n=prompt("Enter new nickname:");if(n){nickname=n;localStorage.setItem("nickname",n);}}
+function clearChat(){if(confirm("Clear chat?")){messages=[];localStorage.setItem("messages",JSON.stringify(messages));openChat();}}
 
-function clearChat(){
-  if(confirm("Clear chat?")){messages=[];localStorage.setItem("messages",JSON.stringify(messages));openChat();}
-}
+// ==== YOUTUBE ====
+function openYT(){content.innerHTML=`<input id="ytInput" placeholder="YouTube link"><button onclick="loadYT()">Load Video</button><br><br><iframe id="ytFrame"></iframe>`;}
+function loadYT(){let url=document.getElementById("ytInput").value;let id="";if(url.includes("watch?v=")) id=url.split("watch?v=")[1].split("&")[0]; else if(url.includes("youtu.be/")) id=url.split("youtu.be/")[1]; document.getElementById("ytFrame").src="https://www.youtube.com/embed/"+id;}
 
-/* ==== YOUTUBE ==== */
-function openYT(){
-  content.innerHTML=`<input id="ytInput" placeholder="YouTube link"><button onclick="loadYT()">Load Video</button><br><br><iframe id="ytFrame"></iframe>`;
-}
-function loadYT(){
-  let url=document.getElementById("ytInput").value;
-  let id="";
-  if(url.includes("watch?v=")) id=url.split("watch?v=")[1].split("&")[0];
-  else if(url.includes("youtu.be/")) id=url.split("youtu.be/")[1];
-  document.getElementById("ytFrame").src="https://www.youtube.com/embed/"+id;
-}
-
-/* ==== GAMES ==== */
+// ==== GAMES ====
 function openGames(){window.open("game.html","_blank");}
-
 </script>
+
 </body>
 </html>
