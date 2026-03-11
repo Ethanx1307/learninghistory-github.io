@@ -3,25 +3,77 @@
 <head>
 <meta charset="UTF-8">
 <title>Learning Hub</title>
+
 <style>
-body { margin:0; font-family: Arial, sans-serif; background:#0b0f19; color:white; }
+body {
+  margin:0;
+  font-family: Arial, sans-serif;
+  background:#0b0f19;
+  color:white;
+}
+
 #app { display:none; height:100vh; }
-.sidebar { width:220px; background:#020617; color:white; padding:20px; position:fixed; top:0; bottom:0; }
-.sidebar button { width:100%; margin-bottom:10px; padding:10px; background:#1e293b; color:white; border:none; border-radius:6px; cursor:pointer; }
+
+.sidebar {
+  width:220px;
+  background:#020617;
+  color:white;
+  padding:20px;
+  position:fixed;
+  top:0; bottom:0;
+}
+
+.sidebar button {
+  width:100%;
+  margin-bottom:10px;
+  padding:10px;
+  background:#1e293b;
+  color:white;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
 .sidebar button:hover { background:#334155; }
-.content { margin-left:240px; padding:30px; min-height:100vh; background:#0b0f19; }
-#chatMessages { background:#020617; border-radius:6px; padding:10px; height:320px; overflow-y:auto; }
-.msg { margin-bottom:12px; }
-.msg .time { font-size:11px; color:#9ca3af; }
-.msg .name { font-weight:bold; }
-input { width:75%; padding:8px; }
+
+.content {
+  margin-left:240px;
+  padding:30px;
+  min-height:100vh;
+  background:#0b0f19;
+}
+
+#chatMessages {
+  background:#020617;
+  border-radius:6px;
+  padding:10px;
+  height:320px;
+  overflow-y:auto;
+}
+
+.msg {
+  margin-bottom:12px;
+}
+.msg .time {
+  font-size:11px;
+  color:#9ca3af;
+}
+.msg .name {
+  font-weight:bold;
+}
+
+input {
+  width:75%;
+  padding:8px;
+}
 button { padding:8px; }
-.smallBtn { font-size:12px; margin-left:5px; }
-/* Confetti effect */
-.confetti { position:fixed; width:10px; height:10px; top:0; animation:fall 2s linear forwards; z-index:9999; }
-@keyframes fall { to { transform: translateY(100vh) rotate(720deg); opacity:0; } }
+
+.smallBtn {
+  font-size:12px;
+  margin-left:5px;
+}
 </style>
 </head>
+
 <body>
 
 <!-- QUIZ GATE -->
@@ -31,7 +83,6 @@ button { padding:8px; }
   <input id="ans" placeholder="Type answer">
   <button onclick="submitQuiz()">Submit</button>
   <p id="feedback"></p>
-  <div id="retryArea"></div>
 </div>
 
 <!-- APP -->
@@ -58,28 +109,54 @@ firebase.initializeApp({
   projectId: "learning-history-1bfd5",
 });
 const db = firebase.database();
-const content = document.getElementById("content");
 
-/* NICKNAME */
+/* 👤 NICKNAME */
 let nickname = localStorage.getItem("nickname");
+if (!nickname) {
+  nickname = prompt("Choose a nickname:");
+  if (!nickname) nickname = "Anonymous";
+  localStorage.setItem("nickname", nickname);
+}
 
-/* CHAT COOLDOWN */
-let lastSent = 0;
-const COOLDOWN = 1000; // 1 second
+/* 👑 ADMIN */
+const ADMIN_CODE = "Ethandagod@1";
+let isAdmin = localStorage.getItem("admin") === "true";
 
-function openChat(){
-  if(!nickname){
-    nickname = prompt("Choose a nickname:") || "Anonymous";
-    localStorage.setItem("nickname", nickname);
+function adminLogin() {
+  const code = prompt("Admin code:");
+  if (code === ADMIN_CODE) {
+    localStorage.setItem("admin","true");
+    isAdmin = true;
+    alert("Admin enabled");
   }
+}
 
+/* 🚫 MUTE CHECK */
+function checkMuted(cb) {
+  db.ref("muted/" + nickname).once("value", snap => {
+    cb(snap.val() === true);
+  });
+}
+
+/* ⏱ COOLDOWN */
+let lastSent = 0;
+const COOLDOWN = 1200;
+
+/* 💬 CHAT */
+function openChat() {
   content.innerHTML = `
     <h2>Chat</h2>
     <div id="chatMessages"></div>
     <input id="msg" placeholder="Message">
-    <button onclick="sendMsg()">Send</button><br><br>
+    <button onclick="sendMsg()">Send</button>
+    <br><br>
     <button class="smallBtn" onclick="changeNick()">Change Nickname</button>
-    <button class="smallBtn" onclick="clearChat()">Clear Chat</button>
+    <button class="smallBtn" onclick="adminLogin()">Admin</button>
+    ${isAdmin ? `
+      <button class="smallBtn" onclick="clearChat()">Clear Chat</button>
+      <button class="smallBtn" onclick="muteUser()">Mute</button>
+      <button class="smallBtn" onclick="unmuteUser()">Unmute</button>
+    ` : ``}
   `;
 
   const box = document.getElementById("chatMessages");
@@ -90,152 +167,135 @@ function openChat(){
     const m = snap.val();
     const div = document.createElement("div");
     div.className = "msg";
-    div.innerHTML = `<div class="time">${formatTime(m.time)}</div><div><span class="name">${m.nick}</span>: ${m.msg}</div>`;
+    div.innerHTML = `
+      <div class="time">${formatTime(m.time)}</div>
+      <div><span class="name">${m.nick}</span>: ${m.msg}</div>
+    `;
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
   });
 
   document.getElementById("msg").addEventListener("keydown", e=>{
-    if(e.key==="Enter"){ e.preventDefault(); sendMsg(); }
+    if(e.key==="Enter") sendMsg();
   });
 }
 
-function sendMsg(){
+function sendMsg() {
   const now = Date.now();
-  if(now - lastSent < COOLDOWN){ alert("Slow down your chat ⏱"); return; }
+  if (now - lastSent < COOLDOWN) {
+    alert("Slow down");
+    return;
+  }
 
-  const input = document.getElementById("msg");
-  if(!input.value.trim()) return;
-
-  lastSent = now;
-  db.ref("chat").push({
-    nick: nickname,
-    msg: input.value.trim(),
-    time: Date.now()
+  checkMuted(muted=>{
+    if(muted){
+      alert("You are muted");
+      return;
+    }
+    const input = document.getElementById("msg");
+    if (!input.value.trim()) return;
+    lastSent = now;
+    db.ref("chat").push({
+      nick:nickname,
+      msg:input.value.trim(),
+      time:Date.now()
+    });
+    input.value="";
   });
-  input.value = "";
 }
 
+/* 🕒 TIME FORMAT */
 function formatTime(ts){
   const d = new Date(ts);
   const now = new Date();
-  const h = d.getHours() % 12 || 12;
-  const m = d.getMinutes().toString().padStart(2,"0");
-  const ampm = d.getHours()<12 ? "am":"pm";
   const diff = now - d;
+  const h = d.getHours()%12 || 12;
+  const m = d.getMinutes().toString().padStart(2,"0");
+  const ampm = d.getHours()<12?"am":"pm";
 
-  if(diff < 86400000 && now.getDate() === d.getDate())
+  if(diff < 86400000 && now.getDate()===d.getDate())
     return `Today at ${h}:${m}${ampm}`;
-  if(diff < 172800000 && now.getDate() !== d.getDate())
+  if(diff < 172800000)
     return `Yesterday at ${h}:${m}${ampm}`;
   return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ampm}`;
 }
 
+/* 🔧 MODERATION */
+function muteUser(){
+  const u = prompt("Mute who?");
+  if(u) db.ref("muted/"+u).set(true);
+}
+function unmuteUser(){
+  const u = prompt("Unmute who?");
+  if(u) db.ref("muted/"+u).remove();
+}
+function clearChat(){
+  if(confirm("Clear chat?")) db.ref("chat").remove();
+}
 function changeNick(){
   if(prompt("Code")!=="4293") return alert("Wrong code");
   const n = prompt("New nickname:");
   if(n){
-    nickname = n;
-    localStorage.setItem("nickname", nickname);
-    openChat();
+    localStorage.setItem("nickname",n);
+    location.reload();
   }
-}
-
-function clearChat(){
-  if(prompt("Code")!=="Ethandagod@1") return alert("Wrong code");
-  if(confirm("Clear chat?")) db.ref("chat").remove();
 }
 
 /* 📄 DOCUMENT */
 function openDoc(){
-  const code = prompt("Document access code:")||"";
-  if(code==="12345678h"){
-    content.innerHTML=`
-      <h2>Document</h2>
-      <button onclick="unlockEdit()">Unlock Editing</button>
-      <div id="editor" contenteditable="false"></div>
-    `;
-    const ed = document.getElementById("editor");
-    const ref = db.ref("document");
-    ref.on("value", s => { if(s.val()) ed.innerHTML = s.val(); });
-    let t;
-    ed.addEventListener("input", ()=>{
-      clearTimeout(t);
-      t=setTimeout(()=>ref.set(ed.innerHTML),1200);
-    });
-  } else alert("Incorrect document code");
+  if(prompt("Access code")!=="12345678h") return alert("No access");
+  content.innerHTML = `
+    <h2>Document</h2>
+    <button onclick="unlockEdit()">Unlock Editing</button>
+    <div id="editor" contenteditable="false"></div>
+  `;
+  const ed = document.getElementById("editor");
+  const ref = db.ref("document");
+  ref.on("value",s=>{ if(s.val()) ed.innerHTML=s.val(); });
+
+  let t;
+  ed.addEventListener("input",()=>{
+    clearTimeout(t);
+    t=setTimeout(()=>ref.set(ed.innerHTML),1200);
+  });
 }
-function unlockEdit(){ if(prompt("Edit code")==="1219") document.getElementById("editor").contentEditable="true"; }
+function unlockEdit(){
+  if(prompt("Edit code")==="1219")
+    document.getElementById("editor").contentEditable="true";
+}
 
 /* ▶️ YOUTUBE */
 function openYT(){
-  content.innerHTML = `<input id="yt" placeholder="YouTube URL"><button onclick="embed()">Embed</button><iframe id="player" style="width:100%;height:400px;border:none"></iframe>`;
+  content.innerHTML=`
+    <input id="yt" placeholder="YouTube URL">
+    <button onclick="embed()">Embed</button>
+    <iframe id="player" style="width:100%;height:400px;border:none"></iframe>
+  `;
 }
 function embed(){
-  const u = document.getElementById("yt").value;
-  const id = u.includes("v=")? u.split("v=")[1].split("&")[0]: u.split("/").pop();
-  document.getElementById("player").src = "https://www.youtube.com/embed/" + id;
+  const u=document.getElementById("yt").value;
+  const id=u.includes("v=")?u.split("v=")[1].split("&")[0]:u.split("/").pop();
+  document.getElementById("player").src="https://www.youtube.com/embed/"+id;
 }
 
 /* 🎮 GAMES */
 function openGames(){ window.open("game.html","_blank"); }
 
-/* 🎯 MATH QUIZ */
-let currentQ = 0, correct = 0, answer = "";
-function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
-
-function genQuestion(l){
-  let q,a;
-  if(l<10){ let x=rand(1,20),y=rand(1,20); q=`${x} + ${y}`; a=(x+y)+""; }
-  else if(l<25){ let x=rand(2,12),y=rand(2,12); q=`${x} × ${y}`; a=(x*y)+""; }
-  else if(l<40){ let x=rand(1,9),y=rand(2,9); q=`${x}/${y} as decimal (2dp)`; a=(x/y).toFixed(2); }
-  else{ let x=rand(2,10),y=rand(1,10); q=`Solve: ${x}x = ${x*y}`; a=y+""; }
-  answer = a;
-  qText.innerText = `Question ${currentQ+1}/50: ${q}`;
-}
-
+/* 🎯 QUIZ */
+const quiz = [{q:"1/2 of 3/4?",a:"3/8"}];
+let qi=0;
 function submitQuiz(){
-  const u = ans.value.trim().toLowerCase();
-  if(u==="opensesame" || u==="open sesame"){ unlockApp(); return; }
-
-  if(u===answer){ correct++; feedback.innerText="Correct ✅"; } 
-  else feedback.innerText=`Wrong ❌ (ans: ${answer})`;
-  ans.value = "";
-  currentQ++;
-
-  if(correct>=50){ finishQuiz(true); return; }
-  if(currentQ>=50){ finishQuiz(false); return; }
-
-  genQuestion(currentQ);
-}
-
-function finishQuiz(perfect){
-  if(perfect){
-    feedback.innerText="🎉 Perfect 50/50! Here's your code: opensesame";
-    launchConfetti(50);
-    setTimeout(unlockApp,1500);
+  if(document.getElementById("ans").value.toLowerCase()==="opensesame"){
+    quizGate.style.display="none";
+    app.style.display="block";
+    openChat();
   } else {
-    retryArea.innerHTML=`<p>You got ${correct}/50.</p><button onclick="retryQuiz()">Retry</button>`;
+    qi++;
+    document.getElementById("feedback").innerText="Next question...";
   }
 }
-
-function retryQuiz(){ currentQ=0; correct=0; retryArea.innerHTML=""; genQuestion(0); }
-
-function unlockApp(){ quizGate.style.display="none"; app.style.display="block"; openChat(); }
-
-/* Confetti effect */
-function launchConfetti(n){
-  for(let i=0;i<n;i++){
-    const c=document.createElement("div");
-    c.className="confetti"; c.style.left=rand(0,window.innerWidth)+"px";
-    c.style.background=`hsl(${rand(0,360)},100%,50%)`;
-    document.body.appendChild(c);
-    setTimeout(()=>c.remove(),2000);
-  }
-}
-
-// Start quiz
-genQuestion(0);
+document.getElementById("qText").innerText=quiz[0].q;
 </script>
+
 </body>
 </html>
