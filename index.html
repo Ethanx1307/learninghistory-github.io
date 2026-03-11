@@ -6,20 +6,23 @@
 
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Arial,sans-serif;background:#f8fafc;color:#0f172a}
+body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
+
+/* STATUS */
+#statusBanner{
+  position:fixed;top:0;left:0;right:0;
+  background:#f59e0b;color:black;
+  text-align:center;padding:6px;
+  display:none;z-index:9999
+}
 
 /* QUIZ */
 #quiz{
-  max-width:720px;margin:80px auto;background:white;
-  padding:40px;border-radius:12px;
-  box-shadow:0 20px 50px rgba(0,0,0,.15)
+  max-width:720px;margin:80px auto;background:#111;
+  padding:40px;border-radius:12px
 }
-input,button{padding:10px;font-size:16px;margin-top:10px;border-radius:6px}
-#feedback{font-weight:bold;margin-top:10px}
-
-/* RESULTS */
-#result,#fakeWin{display:none;text-align:center;margin-top:80px}
-#confetti{position:fixed;inset:0;pointer-events:none;z-index:999}
+input,button{padding:10px;font-size:15px;margin-top:8px;border-radius:6px}
+#feedback{font-weight:bold}
 
 /* APP */
 #app{display:none}
@@ -34,21 +37,23 @@ input,button{padding:10px;font-size:16px;margin-top:10px;border-radius:6px}
 .sidebar button:hover{background:#40444b}
 .content{
   margin-left:240px;padding:40px;
-  background:#0f0f0f;min-height:100vh;color:white
+  min-height:100vh;background:#0f0f0f
 }
-#editor,#chatMessages,iframe{
-  background:#1e1e2f;color:white;
-  border:1px solid #40444b;
-  padding:20px;border-radius:8px
-}
+
+/* CHAT */
 .chat-msg{background:#2c2f33;padding:8px;margin-bottom:8px;border-radius:6px}
 .time{font-size:.75em;color:#9ca3af}
 .nick{color:#43b581;font-weight:bold}
 #typing{font-size:.8em;color:#9ca3af;margin:6px 0}
+#chatMessages{max-height:360px;overflow-y:auto}
 
-/* Proxy */
+/* DOC */
+#editor{background:#1e1e2f;border-radius:8px;padding:16px}
+
+/* PROXY */
 .proxy-bar{display:flex;gap:10px;margin-bottom:10px}
 .proxy-bar input{flex:1}
+iframe{width:100%;height:420px;border:none;border-radius:8px}
 </style>
 
 <!-- Firebase -->
@@ -62,36 +67,25 @@ firebase.initializeApp({
   projectId:"learning-history-1bfd5"
 });
 const db=firebase.database();
-  firebase.database().ref().keepSynced(true);
+firebase.database().ref().keepSynced(true);
 </script>
 </head>
 
 <body>
 
+<div id="statusBanner">Offline</div>
+
 <!-- QUIZ -->
 <div id="quiz">
   <h1>Year 8 Maths Quiz</h1>
-  <p id="qText"></p>
-  <input id="ans" placeholder="Type your answer">
-  <br>
+  <p id="q"></p>
+  <input id="a" placeholder="Type answer">
   <button onclick="submit()">Submit</button>
   <div id="feedback"></div>
-  <p>Question <span id="num"></span>/20</p>
+  <p>Question <span id="n"></span>/20</p>
 </div>
 
-<div id="result">
-  <h1>Your Score</h1>
-  <h2 id="score"></h2>
-  <button onclick="location.reload()">Retry</button>
-</div>
-
-<div id="fakeWin">
-  <h1>🎉 PERFECT SCORE 🎉</h1>
-  <p>You have mastered Year 8 Maths.</p>
-  <div id="confetti"></div>
-</div>
-
-<!-- SECRET APP -->
+<!-- APP -->
 <div id="app">
   <div class="sidebar">
     <button onclick="openDoc()">📄 Document</button>
@@ -100,20 +94,21 @@ const db=firebase.database();
     <button onclick="openGames()">🎮 Games</button>
     <button onclick="openProxy()">🌐 Proxy</button>
   </div>
-  <div class="content" id="content">Welcome.</div>
+  <div class="content" id="content"></div>
 </div>
 
 <script>
-/* ===== TIME FORMAT ===== */
-function formatTime(ts){
-  const d=new Date(ts),n=new Date();
-  const h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
-  const ap=d.getHours()>=12?"pm":"am";
-  const y=new Date(n);y.setDate(n.getDate()-1);
-  if(d.toDateString()===n.toDateString())return`Today at ${h}:${m}${ap}`;
-  if(d.toDateString()===y.toDateString())return`Yesterday at ${h}:${m}${ap}`;
-  return`${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
-}
+/* ===== OFFLINE ===== */
+const banner=document.getElementById("statusBanner");
+firebase.database().ref(".info/connected").on("value",s=>{
+  if(!s.val()){
+    banner.style.display="block";
+    banner.textContent="⚠️ You are offline";
+  }else{
+    banner.textContent="✅ Back online";
+    setTimeout(()=>banner.style.display="none",1200);
+  }
+});
 
 /* ===== QUIZ ===== */
 const Q=[
@@ -125,73 +120,74 @@ const Q=[
 ["5x=25","5"],["√144","12"],["7+(-3)","4"],
 ["20% of 50","10"],["x+7=12","5"],["3×(4+2)","18"]
 ];
-let qi=0,score=0;
-function loadQ(){qText.innerText=Q[qi][0];num.innerText=qi+1;ans.value="";feedback.innerText=""}
-loadQ();
+let i=0,score=0;
+function load(){q.textContent=Q[i][0];n.textContent=i+1;a.value="";feedback.textContent=""}
+load();
 function submit(){
-  const a=ans.value.trim().toLowerCase();
-  if(a==="opensesame"||a==="open sesame"){
+  const v=a.value.trim().toLowerCase();
+  if(v==="opensesame"||v==="open sesame"){
     quiz.style.display="none";app.style.display="block";openChat();return;
   }
-  if(a===Q[qi][1]){score++;feedback.innerText="Correct!"}
-  else feedback.innerText="Incorrect.";
-  qi++;qi<20?setTimeout(loadQ,500):finish();
+  if(v===Q[i][1]){score++;feedback.textContent="Correct!"}
+  else feedback.textContent="Incorrect";
+  i++;i<20?setTimeout(load,400):finish();
 }
 function finish(){
-  quiz.style.display="none";
-  score===20?(fakeWin.style.display="block",party()):(result.style.display="block",score.innerText=`${score}/20`);
-}
-function party(){
-  for(let i=0;i<120;i++){
-    const d=document.createElement("div");
-    d.style.position="absolute";
-    d.style.width=d.style.height="8px";
-    d.style.background=`hsl(${Math.random()*360},90%,60%)`;
-    d.style.left=Math.random()*100+"%";
-    d.style.top=Math.random()*100+"%";
-    confetti.appendChild(d);
-    setTimeout(()=>d.remove(),3000);
-  }
+  quiz.innerHTML=`<h1>Score</h1><h2>${score}/20</h2><button onclick="location.reload()">Retry</button>`;
 }
 
 /* ===== DOCUMENT ===== */
 function openDoc(){
-  content.innerHTML=`<h2>Document</h2><button id="unlock">Unlock Editing</button><div id="editor" contenteditable="false"></div>`;
-  const ed=document.getElementById("editor");
-  db.ref("doc").on("value",s=>{if(!ed.isContentEditable)ed.innerHTML=s.val()||""});
-  unlock.onclick=()=>{
-    if(prompt("Edit code")!=="1219")return alert("Wrong code");
-    ed.contentEditable=true;unlock.disabled=true;
+  content.innerHTML=`
+  <h2>Document</h2>
+  <button id="read">Unlock Reading</button>
+  <button id="edit">Unlock Editing</button>
+  <div id="editor">Locked</div>`;
+  const ed=editor;
+  ed.contentEditable=false;
+
+  read.onclick=()=>{
+    if(prompt("Read code")!=="12345678h") return alert("Wrong");
+    db.ref("doc").on("value",s=>ed.innerHTML=s.val()||"");
   };
-  ed.oninput=()=>db.ref("doc").set(ed.innerHTML);
+  edit.onclick=()=>{
+    if(prompt("Edit code")!=="1219") return alert("Wrong");
+    ed.contentEditable=true;
+    ed.oninput=()=>db.ref("doc").set(ed.innerHTML);
+  };
 }
 
-/* ===== CHAT + TYPING ===== */
+/* ===== CHAT ===== */
+let isAdmin=localStorage.isAdmin==="true";
 function openChat(){
   let nick=localStorage.nick||prompt("Nickname")||"Anon";
   localStorage.nick=nick;
+
+  db.ref("kicked/"+nick).once("value",s=>{
+    if(s.exists()){
+      content.innerHTML="<h2>You were kicked.</h2>";
+      throw "kicked";
+    }
+  });
+
   content.innerHTML=`
   <h2>Chat</h2>
   <div id="typing"></div>
-  <button onclick="changeNick()">Change Nickname</button>
-  <button onclick="clearChat()">Clear Chat</button>
+  <button onclick="adminLogin()">Admin</button>
+  <button onclick="kickUser()" id="kickBtn" ${isAdmin?"":"disabled"}>Kick</button>
+  <button onclick="clearChat()">Clear</button>
   <div id="chatMessages"></div>
-  <input id="msg" placeholder="Message">
-  <button onclick="send()">Send</button>`;
+  <input id="msg"><button onclick="send()">Send</button>`;
 
   const typingRef=db.ref("typing/"+nick);
-  let tmo;
-
   msg.oninput=()=>{
     typingRef.set(true);
-    clearTimeout(tmo);
-    tmo=setTimeout(()=>typingRef.remove(),1200);
+    setTimeout(()=>typingRef.remove(),1200);
   };
 
   db.ref("typing").on("value",s=>{
     const t=s.val()||{};
-    const names=Object.keys(t).filter(n=>n!==nick);
-    typing.innerText=names.length?`${names.join(", ")} is typing…`:"";
+    typing.textContent=Object.keys(t).filter(x=>x!==nick).join(", ")+" is typing…";
   });
 
   db.ref("chat").off();
@@ -199,7 +195,7 @@ function openChat(){
     const m=s.val();
     const d=document.createElement("div");
     d.className="chat-msg";
-    d.innerHTML=`<div class="time">${formatTime(m.t)}</div><div class="nick">${m.n}</div>${m.m}`;
+    d.innerHTML=`<div class="time">${new Date(m.t).toLocaleString()}</div><div class="nick">${m.n}</div>${m.m}`;
     chatMessages.appendChild(d);
     chatMessages.scrollTop=chatMessages.scrollHeight;
   });
@@ -210,38 +206,38 @@ function openChat(){
     db.ref("chat").push({n:nick,m:msg.value,t:Date.now()});
     msg.value="";
   };
-  window.changeNick=()=>{
-    if(prompt("Code")!=="4293")return;
-    localStorage.nick=prompt("New nickname")||nick;
-  };
-  window.clearChat=()=>{
-    if(prompt("Code")!=="Ethandagod")return;
-    db.ref("chat").remove();chatMessages.innerHTML="";
-  };
 }
 
-/* ===== YT ===== */
-function openYT(){
-  content.innerHTML=`<input id="y"><button onclick="p.src='https://www.youtube.com/embed/'+y.value.split('v=')[1]">Embed</button><iframe id="p" style="width:100%;height:420px"></iframe>`;
+/* ADMIN */
+function adminLogin(){
+  if(prompt("Admin code")==="Ethandagod@1"){
+    isAdmin=true;
+    localStorage.isAdmin="true";
+    alert("Admin enabled");
+    kickBtn.disabled=false;
+  }
+}
+function clearChat(){
+  if(!isAdmin) return alert("Admin only");
+  db.ref("chat").remove();
+}
+function kickUser(){
+  if(!isAdmin) return;
+  const u=prompt("Kick username");
+  if(u) db.ref("kicked/"+u).set(true);
 }
 
-/* ===== GAMES ===== */
+/* ===== OTHER ===== */
+function openYT(){content.innerHTML="<p>YouTube here</p>"}
 function openGames(){window.open("game.html","_blank")}
-
-/* ===== PROXY (UPDATED DEFAULT SITE) ===== */
 function openProxy(){
   content.innerHTML=`
   <h2>Research Viewer</h2>
   <div class="proxy-bar">
-    <input id="proxyURL" value="https://geography.callcentercuritiba.com.br/">
-    <button onclick="loadProxy()">Go</button>
+    <input id="u" value="https://geography.callcentercuritiba.com.br/">
+    <button onclick="f.src=u.value">Go</button>
   </div>
-  <iframe id="proxyFrame" src="https://geography.callcentercuritiba.com.br/" style="width:100%;height:500px"></iframe>`;
-}
-function loadProxy(){
-  let u=proxyURL.value.trim();
-  if(!u.startsWith("http"))u="https://"+u;
-  proxyFrame.src=u;
+  <iframe id="f" src="https://geography.callcentercuritiba.com.br/"></iframe>`;
 }
 </script>
 </body>
