@@ -98,29 +98,32 @@ function unlockApp(){
   openChat();
 }
 
-// ==== DOCUMENT (ONLY PART CHANGED) ====
+// ==== DOCUMENT (NORMAL NOW NEEDS EDIT CODE) ====
 function openDoc(){
   content.innerHTML=`
     <h2>Document</h2>
+    <button id="editBtn">Edit</button>
     <button id="premiumBtn">Unlock Premium</button>
     <div id="editor"></div>
   `;
 
   const ed=document.getElementById("editor");
-  ed.contentEditable=true;
+  ed.contentEditable=false;
 
-  // Normal document (anyone can edit)
   db.ref("doc").on("value",s=>{
     if(document.activeElement!==ed){
       ed.innerHTML=s.val()||"";
     }
   });
 
-  ed.addEventListener("input",()=>{
-    db.ref("doc").set(ed.innerHTML);
-  });
+  editBtn.onclick=()=>{
+    if(prompt("Enter edit code")!=="1219") return alert("Wrong code");
+    ed.contentEditable=true;
+    ed.addEventListener("input",()=>{
+      db.ref("doc").set(ed.innerHTML);
+    });
+  };
 
-  // Premium
   premiumBtn.onclick=()=>{
     if(prompt("Enter premium code")!=="12345678h") return alert("Wrong code");
 
