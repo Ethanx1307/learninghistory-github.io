@@ -52,7 +52,6 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-// Firebase
 const firebaseConfig={
   apiKey:"AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
   authDomain:"learning-history-1bfd5.firebaseapp.com",
@@ -65,7 +64,7 @@ const firebaseConfig={
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
-// ==== QUIZ ====
+// ==== QUIZ (unchanged) ====
 let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"],["-5+12","7"],["6²÷3","12"],["Area 5×4","20"],["Perimeter square 6","24"],["2x=18","9"],
 ["9³","729"],["1/2 of 3/4","3/8"],["10⁻¹","0.1"],["Mean of 2,4,6","4"],["5x=25","5"],["√144","12"],["7+(-3)","4"],["20% of 50","10"],["x+7=12","5"],["3×(4+2)","18"],
 ["8×9","72"],["64÷8","8"],["5²+3","28"],["√196","14"],["10% of 150","15"],["-3×6","-18"],["12÷4+3","6"],["Area triangle 6×5÷2","15"],["Perimeter rect 5×3","16"],["2x+5=15","5"],["11³","1331"],
@@ -94,29 +93,65 @@ function finishQ(){
 }
 
 function unlockApp(){
-  document.getElementById("quiz").style.display="none";
-  document.getElementById("app").style.display="block";
+  quiz.style.display="none";
+  app.style.display="block";
   openChat();
 }
 
-// ==== DOCUMENT ====
+// ==== DOCUMENT (ONLY PART CHANGED) ====
 function openDoc(){
-  content.innerHTML=`<h2>Document</h2>
-  <button id="readBtn">Unlock Reading</button>
-  <button id="editBtn">Unlock Editing</button>
-  <div id="editor">Locked</div>`;
+  content.innerHTML=`
+    <h2>Document</h2>
+    <button id="premiumBtn">Unlock Premium</button>
+    <div id="editor"></div>
+  `;
+
   const ed=document.getElementById("editor");
-  ed.contentEditable=false;
-  readBtn.onclick=()=>{if(prompt("Enter read code")!=="12345678h") return alert("Wrong"); db.ref("doc").on("value",s=>ed.innerHTML=s.val()||"");};
-  editBtn.onclick=()=>{if(prompt("Enter edit code")!=="1219") return alert("Wrong"); ed.contentEditable=true; ed.addEventListener("input",()=>db.ref("doc").set(ed.innerHTML));};
+  ed.contentEditable=true;
+
+  // Normal document (anyone can edit)
+  db.ref("doc").on("value",s=>{
+    if(document.activeElement!==ed){
+      ed.innerHTML=s.val()||"";
+    }
+  });
+
+  ed.addEventListener("input",()=>{
+    db.ref("doc").set(ed.innerHTML);
+  });
+
+  // Premium
+  premiumBtn.onclick=()=>{
+    if(prompt("Enter premium code")!=="12345678h") return alert("Wrong code");
+
+    content.innerHTML=`
+      <h2>Premium Document</h2>
+      <button id="editBtn">Edit</button>
+      <div id="editor"></div>
+    `;
+
+    const ped=document.getElementById("editor");
+    ped.contentEditable=false;
+
+    db.ref("premiumDoc").on("value",s=>{
+      ped.innerHTML=s.val()||"";
+    });
+
+    editBtn.onclick=()=>{
+      if(prompt("Enter edit code")!=="1219") return alert("Wrong code");
+      ped.contentEditable=true;
+      ped.addEventListener("input",()=>{
+        db.ref("premiumDoc").set(ped.innerHTML);
+      });
+    };
+  };
 }
 
-// ==== CHAT ====
-let nickname = localStorage.getItem("nickname");
+// ==== CHAT, YT, GAMES, PROXY (unchanged) ====
+let nickname=localStorage.getItem("nickname");
 function openChat(){
   if(!nickname){
-    nickname=prompt("Choose your nickname:");
-    if(!nickname) nickname="Anonymous";
+    nickname=prompt("Choose your nickname:")||"Anonymous";
     localStorage.setItem("nickname",nickname);
   }
   content.innerHTML=`<h2>Chat</h2>
@@ -124,10 +159,10 @@ function openChat(){
   <button onclick="clearChat()">Clear Chat</button>
   <div id="chatBox"></div>
   <input id="msgInput" placeholder="Message"><button onclick="sendMsg()">Send</button>`;
-  
+
   const chatBox=document.getElementById("chatBox");
   const msgInput=document.getElementById("msgInput");
-  
+
   db.ref("chat").on("child_added",snap=>{
     const m=snap.val();
     const div=document.createElement("div");
@@ -136,42 +171,26 @@ function openChat(){
     chatBox.appendChild(div);
     chatBox.scrollTop=chatBox.scrollHeight;
   });
-  
+
   msgInput.addEventListener("keydown",e=>{if(e.key==="Enter") sendMsg();});
-  
   window.sendMsg=function(){
     if(!msgInput.value.trim()) return;
-    db.ref("chat").push({name:nickname,text:msgInput.value.trim(),time:new Date().getTime()});
+    db.ref("chat").push({name:nickname,text:msgInput.value.trim(),time:Date.now()});
     msgInput.value="";
   }
 }
 
 function changeName(){const n=prompt("Enter new nickname:");if(n){nickname=n;localStorage.setItem("nickname",n);}}
-function clearChat(){if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong code"); db.ref("chat").remove(); openChat();}
-
-// ==== YOUTUBE ====
+function clearChat(){if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong"); db.ref("chat").remove(); openChat();}
 function openYT(){content.innerHTML=`<input id="ytInput" placeholder="YouTube link"><button onclick="loadYT()">Load Video</button><br><br><iframe id="ytFrame"></iframe>`;}
-function loadYT(){let url=document.getElementById("ytInput").value;let id="";if(url.includes("watch?v=")) id=url.split("watch?v=")[1].split("&")[0]; else if(url.includes("youtu.be/")) id=url.split("youtu.be/")[1]; document.getElementById("ytFrame").src="https://www.youtube.com/embed/"+id;}
-
-// ==== GAMES ====
+function loadYT(){let u=ytInput.value,id="";if(u.includes("watch?v="))id=u.split("watch?v=")[1].split("&")[0];else if(u.includes("youtu.be/"))id=u.split("youtu.be/")[1];ytFrame.src="https://www.youtube.com/embed/"+id;}
 function openGames(){window.open("game.html","_blank");}
-
-// ==== PROXY ====
-function openProxy(){
-  window.open("https://rammer.nana.mikechan.ca/", "_blank");
-}
-
-// ==== TIME FORMAT ====
+function openProxy(){window.open("https://rammer.nana.mikechan.ca/","_blank");}
 function formatTime(ts){
-  const d=new Date(ts);
-  const today=new Date();
-  const yesterday=new Date();
-  yesterday.setDate(today.getDate()-1);
-  const h=d.getHours()%12||12;
-  const m=d.getMinutes().toString().padStart(2,"0");
-  const ap=d.getHours()>=12?"pm":"am";
-  if(d.toDateString()===today.toDateString()) return `Today at ${h}:${m}${ap}`;
-  if(d.toDateString()===yesterday.toDateString()) return `Yesterday at ${h}:${m}${ap}`;
+  const d=new Date(ts),t=new Date(),y=new Date();y.setDate(t.getDate()-1);
+  const h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0"),ap=d.getHours()>=12?"pm":"am";
+  if(d.toDateString()===t.toDateString()) return `Today at ${h}:${m}${ap}`;
+  if(d.toDateString()===y.toDateString()) return `Yesterday at ${h}:${m}${ap}`;
   return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
 }
 </script>
