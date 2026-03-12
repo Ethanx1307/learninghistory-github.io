@@ -12,6 +12,7 @@ body{margin:0;font-family:Arial;background:#0f0f0f;color:white;overflow-x:hidden
 #quiz{max-width:720px;margin:40px auto;background:#111;padding:40px;border-radius:12px;text-align:center}
 #quiz input,#quiz button{padding:10px;font-size:15px;margin-top:8px;border-radius:6px}
 #feedback{font-weight:bold;margin-top:10px;color:#fbb}
+#app{display:block}
 .sidebar{width:220px;background:#1e1e2f;padding:20px;position:fixed;top:0;bottom:0}
 .sidebar button{width:100%;margin-bottom:10px;padding:12px;background:#2c2f33;color:white;border:none;border-radius:8px;cursor:pointer}
 .sidebar button:hover{background:#40444b}
@@ -53,7 +54,7 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 <p>Question <span id="n"></span>/50</p>
 </section>
 
-<!-- HIDDEN WEBSITE APP -->
+<!-- APP -->
 <section id="app">
 <div class="sidebar">
 <button onclick="openDoc()">📄 Document</button>
@@ -114,7 +115,7 @@ const scienceQuestions = [
 ["Temperature unit","celsius"],["What is my favourite colour?","green"]
 ];
 
-/* ===== GLOBALS ===== */
+/* ===== GLOBAL VARIABLES ===== */
 let questions=[],i=0,score=0,currentQuiz="";
 const q=document.getElementById("q"),a=document.getElementById("a"),
 feedback=document.getElementById("feedback"),n=document.getElementById("n");
@@ -140,9 +141,13 @@ function loadQ(){
 
 function submitQ(){
   let v=a.value.trim().toLowerCase().replace(/\s+/g," ");
-  if(v==="opensesame"||v==="open sesame"){unlockApp(); return;}
+  if(v==="opensesame"||v==="open sesame"){
+    unlockApp();
+    return;
+  }
   let ans=questions[i][1].toLowerCase();
-  if(v===ans){score++;feedback.textContent="Correct!"}else{feedback.textContent="Incorrect"}
+  if(v===ans){score++;feedback.textContent="Correct!"}
+  else{feedback.textContent="Incorrect"}
   i++;
   if(i<50) setTimeout(loadQ,400);
   else finishQ();
@@ -153,10 +158,8 @@ function finishQ(){
   if(score===50) party();
 }
 
-/* ===== UNLOCK HIDDEN WEBSITE ===== */
 function unlockApp(){
-  document.getElementById("home").style.display="none";
-  document.getElementById("quiz").style.display="none";
+  quiz.style.display="none";
   document.getElementById("app").style.display="block";
   openChat();
 }
@@ -173,9 +176,66 @@ function party(){
   })();
 }
 
-/* ===== DOCUMENTS / CHAT / YOUTUBE / PROXY ===== */
-// (keep the previous logic for saving documents, premium, chat Enter-send, spam warning, YouTube embed, games, proxy)
+/* ===== DOCUMENTS ===== */
+function openDoc(){
+  content.innerHTML=`<h2>Document</h2><button id="premiumBtn">Unlock Premium</button><div id="editor"></div>`;
+  const ed=document.getElementById("editor");ed.contentEditable=true;
+  let typing=false;
+  db.ref("doc").off();
+  db.ref("doc").on("value",s=>{if(!typing)ed.innerHTML=s.val()||""});
+  ed.oninput=()=>{typing=true;db.ref("doc").set(ed.innerHTML);setTimeout(()=>typing=false,200)};
+  premiumBtn.onclick=()=>{
+    if(prompt("Enter premium code")!=="12345678h")return alert("Wrong");
+    content.innerHTML=`<h2>Premium Document</h2><button id="editBtn">Edit</button><div id="editor"></div>`;
+    const ped=document.getElementById("editor");ped.contentEditable=false;
+    let ptyping=false;
+    db.ref("premiumDoc").off();
+    db.ref("premiumDoc").on("value",s=>{if(!ptyping)ped.innerHTML=s.val()||""});
+    ped.oninput=()=>{if(ped.isContentEditable){ptyping=true;db.ref("premiumDoc").set(ped.innerHTML);setTimeout(()=>ptyping=false,200)}};
+    editBtn.onclick=()=>{if(prompt("Enter edit code")!=="1219")return alert("Wrong");ped.contentEditable=true};
+  };
+}
 
+/* ===== CHAT ===== */
+let nickname=localStorage.getItem("nickname"),lastMsgTime=0;
+function openChat(){
+  if(!nickname){nickname=prompt("Choose nickname")||"Anonymous";localStorage.setItem("nickname",nickname)}
+  content.innerHTML=`<h2>Chat</h2><button onclick="changeName()">Change Nickname</button>
+  <button onclick="clearChat()">Clear Chat</button><div id="chatBox"></div>
+  <input id="msgInput"><button onclick="sendMsg()">Send</button>`;
+  const msgInput=document.getElementById("msgInput");
+  const chatBox=document.getElementById("chatBox");
+  db.ref("chat").on("child_added",s=>{
+    const m=s.val();
+    const div=document.createElement("div");
+    div.className="msg";
+    div.innerHTML=`<div class="time">${new Date(m.time).toLocaleTimeString()}</div><span class="name">${m.name}</span>: ${m.text}`;
+    chatBox.appendChild(div);
+    chatBox.scrollTop=chatBox.scrollHeight;
+  });
+  // ENTER key sends message
+  msgInput.addEventListener("keydown",e=>{
+    if(e.key==="Enter") sendMsg();
+  });
+}
+function sendMsg(){
+  const now=Date.now();
+  if(now-lastMsgTime<1000){alert("Slow down!");return;}
+  lastMsgTime=now;
+  const msgInput=document.getElementById("msgInput");
+  if(msgInput.value.trim()) db.ref("chat").push({name:nickname,text:msgInput.value,time:Date.now()});
+  msgInput.value="";
+}
+function changeName(){const n=prompt("New nickname");if(n){nickname=n;localStorage.setItem("nickname",n)}}
+function clearChat(){if(prompt("Code")!=="Ethandagod")return;db.ref("chat").remove();openChat()}
+
+/* ===== YOUTUBE / GAMES / PROXY ===== */
+function openYT(){content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame"></iframe>`;}
+function loadYT(){let u=ytInput.value,id=u.includes("watch?v=")?u.split("watch?v=")[1].split("&")[0]:u.split("/").pop();ytFrame.src="https://www.youtube.com/embed/"+id;}
+function openGames(){window.open("game.html","_blank");}
+function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
+
+/* ===== INIT HOME SCREEN ===== */
 document.getElementById("home").style.display="block";
 </script>
 </body>
