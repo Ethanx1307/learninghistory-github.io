@@ -5,14 +5,10 @@
 <title>Learning Hub</title>
 <style>
 body{margin:0;font-family:Arial;background:#0f0f0f;color:white;overflow-x:hidden}
-#home,#quiz,#app{display:none}
-#home{max-width:720px;margin:60px auto;text-align:center}
-.home-btn{padding:50px 80px;margin:30px;font-size:30px;border-radius:12px;background:#5865f2;color:white;cursor:pointer;display:inline-block}
-.home-btn:hover{opacity:0.85}
-#quiz{max-width:720px;margin:40px auto;background:#111;padding:40px;border-radius:12px;text-align:center}
+#quiz{max-width:720px;margin:60px auto;background:#111;padding:40px;border-radius:12px;text-align:center}
 #quiz input,#quiz button{padding:10px;font-size:15px;margin-top:8px;border-radius:6px}
 #feedback{font-weight:bold;margin-top:10px;color:#fbb}
-#app{display:block}
+#app{display:none}
 .sidebar{width:220px;background:#1e1e2f;padding:20px;position:fixed;top:0;bottom:0}
 .sidebar button{width:100%;margin-bottom:10px;padding:12px;background:#2c2f33;color:white;border:none;border-radius:8px;cursor:pointer}
 .sidebar button:hover{background:#40444b}
@@ -27,31 +23,33 @@ button{background:#5865f2;color:white;cursor:pointer}
 button:hover{opacity:0.85}
 #editor{background:#1e1e2f;border-radius:8px;padding:16px;min-height:200px}
 iframe{width:100%;height:300px;border-radius:8px;border:none}
-#confetti{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;display:none;z-index:999}
-#bigText{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:42px;font-weight:bold;display:none;z-index:1000;text-align:center}
+
+#confetti{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  pointer-events:none;z-index:999;display:none
+}
+#bigText{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  font-size:42px;font-weight:bold;
+  display:none;z-index:1000;text-align:center
+}
 </style>
 </head>
 <body>
 
 <canvas id="confetti"></canvas>
-<div id="bigText">AWESOME!<br>YOU COMPLETED THE QUIZZES!</div>
-
-<!-- HOME SCREEN -->
-<section id="home">
-<h1>Choose a Quiz</h1>
-<div class="home-btn" onclick="startQuiz('math')">Math</div>
-<div class="home-btn" onclick="startQuiz('science')">Science</div>
-</section>
+<div id="bigText">GOOD JOB!<br>YOU DID ALL THAT FOR NOTHING!</div>
 
 <!-- QUIZ -->
 <section id="quiz">
-<h1 id="quizTitle"></h1>
+<h1>Maths Challenge</h1>
 <p id="q"></p>
 <input id="a" placeholder="Type answer here">
 <br>
 <button onclick="submitQ()">Submit</button>
 <div id="feedback"></div>
-<p>Question <span id="n"></span>/50</p>
+<p>Question <span id="n"></span>/75</p>
 </section>
 
 <!-- APP -->
@@ -81,56 +79,59 @@ firebase.initializeApp({
 });
 const db=firebase.database();
 
-/* ===== QUIZ DATA ===== */
-const mathQuestions = [
-["2+2","4"],["3+5","8"],["7-4","3"],["6×3","18"],["20÷4","5"],
+/* ===== QUIZ ===== */
+const questions=[
+["2+2","4"],["5+7","12"],["9-4","5"],["6×3","18"],["20÷4","5"],
 ["12+15","27"],["7×8","56"],["45÷5","9"],["3²","9"],["√81","9"],
-["5x=20","4"],["x+7=15","8"],["2x+5=17","6"],["x²=49","7"],["Area 6×4","24"],
-["Perimeter square 7","28"],["15% of 200","30"],["-5+12","7"],["-3×6","-18"],
-["Derivative of x²","2x"],["Integral of 2x","x²"],["Limit x→∞ of 1/x","0"],
-["Solve x²=2","√2"],["Factor x²-25","(x-5)(x+5)"],["Simplify (x²×x³)","x⁵"],
-["Differentiate 3x³","9x²"],["Integrate 6x²","2x³"],["Solve: e⁰","1"],
-["ln(e)","1"],["Solve: x²-4x+3=0","x=1,3"],["Derivative of sin(x)","cos(x)"],
-["Integral of cos(x)","sin(x)"],["Solve: 2x+3=11","4"],["x³=27","3"],
-["tan(45°)","1"],["x²+1=0","no real"],["Expand (x+3)²","x²+6x+9"],
-["Second derivative x³","6x"],["Limit x→0 (sin x)/x","1"],["Solve ∫0→1 x² dx","1/3"],
-["Derivative ln(x)","1/x"],["Integral 2x dx","x²"],["Factor x²-16","(x-4)(x+4)"],
-["Solve: 5x-20=0","4"],["x²-9=0","±3"],["What is my favourite colour?","green"]
+["5x=20","4"],["x+7=15","8"],["2x+5=17","6"],
+["x²=49","7"],["Area 6×4","24"],["Perimeter square 7","28"],
+["15% of 200","30"],["-5+12","7"],["-3×6","-18"],
+["3(4+5)","27"],["x²-9=0","±3"],["x/4=6","24"],
+["10⁻²","0.01"],["log10(100)","2"],
+["sin(30°)","0.5"],["cos(60°)","0.5"],
+["x²+5x+6=0","-2,-3"],["Mean of 4,6,10","6.67"],
+["f(x)=2x, f(5)","10"],
+["2³×3²","72"],
+["√(144)+√(16)","16"],
+["x²-16=0","±4"],
+["1/3+1/6","1/2"],
+["Derivative of x²","2x"],
+["Integral of 2x","x²"],
+["Limit x→0 of x","0"],
+["y=3x+2, y when x=4","14"],
+["Area circle r=7 (π=3.14)","153.86"],
+["Solve: 3x-9=0","3"],
+["x³=27","3"],
+["tan(45°)","1"],
+["x²+1=0","no real"],
+["Factor: x²-25","(x-5)(x+5)"],
+["Gradient of y=5x","5"],
+["Volume cube side 4","64"],
+["Probability heads","0.5"],
+["Median of 3,7,9","7"],
+["Solve simultaneous: x+y=5, x-y=1","x=3,y=2"],
+["Expand: (x+3)²","x²+6x+9"],
+["Simplify: (x²×x³)","x⁵"],
+["Differentiate: 3x³","9x²"],
+["Integrate: 6x²","2x³"],
+["Solve: e⁰","1"],
+["ln(e)","1"],
+["Solve: x²=2","√2"],
+["Find gradient of x² at x=3","6"],
+["Second derivative of x³","6x"],
+["Limit x→∞ of 1/x","0"],
+["Find turning point of x²","0,0"],
+["Solve: d/dx (sin x)","cos x"],
+["Solve: ∫cos x dx","sin x"],
+["Solve: ∫1/x dx","ln|x|"],
+["Solve: x''=0","ax+b"],
+["Solve: ∫0→1 x² dx","1/3"],
+["What is my favourite colour?","green"]
 ];
 
-const scienceQuestions = [
-["Water boils at?","100"],["Freezing point of water?","0"],["H2O is?","water"],
-["Force formula?","mass*acceleration"],["Earth revolves around?","sun"],
-["Speed of light (approx km/s)","300000"],["Periodic table symbol for oxygen?","O"],
-["pH of pure water","7"],["What planet is red?","mars"],["Energy unit","joule"],
-["States of matter","solid,liquid,gas"],["Chemical symbol gold?","Au"],["Newton's 1st law?","inertia"],
-["Electric current unit","ampere"],["Light travels faster in?","vacuum"],["Atomic number of hydrogen","1"],
-["Electron charge","-1.6e-19"],["Density formula","mass/volume"],["Boiling point of ethanol","78"],
-["Photosynthesis formula?","CO2+H2O→O2+C6H12O6"],["Cell powerhouse","mitochondria"],["DNA full form","deoxyribonucleic acid"],
-["pH<7 is?","acidic"],["pH>7 is?","basic"],["Newton's 2nd law","F=ma"],["Unit of frequency","hertz"],
-["Acceleration unit","m/s²"],["Gravity (approx)","9.8"],["Evaporation requires?","energy"],
-["Solubility measured in?","g/100ml"],["Speed unit","m/s"],["Light unit","lux"],["Sound unit","decibel"],
-["Force unit","newton"],["Magnet unit","tesla"],["Wave unit","hz"],["Voltage unit","volt"],["Current unit","ampere"],
-["Resistance unit","ohm"],["Capacitor unit","farad"],["Inductor unit","henry"],["Pressure unit","pascal"],
-["Temperature unit","celsius"],["What is my favourite colour?","green"]
-];
-
-/* ===== GLOBAL VARIABLES ===== */
-let questions=[],i=0,score=0,currentQuiz="";
+let i=0,score=0;
 const q=document.getElementById("q"),a=document.getElementById("a"),
 feedback=document.getElementById("feedback"),n=document.getElementById("n");
-
-/* ===== START QUIZ ===== */
-function startQuiz(type){
-  currentQuiz=type;
-  questions=(type==="math"?mathQuestions.slice():scienceQuestions.slice());
-  questions.sort(()=>Math.random()-0.5);
-  document.getElementById("home").style.display="none";
-  document.getElementById("quiz").style.display="block";
-  document.getElementById("quizTitle").textContent=type==="math"?"Math Quiz":"Science Quiz";
-  i=0;score=0;
-  loadQ();
-}
 
 function loadQ(){
   q.textContent=questions[i][0];
@@ -138,105 +139,95 @@ function loadQ(){
   a.value="";
   feedback.textContent="";
 }
+loadQ();
 
 function submitQ(){
-  let v=a.value.trim().toLowerCase().replace(/\s+/g," ");
-  if(v==="opensesame"||v==="open sesame"){
-    unlockApp();
-    return;
-  }
+  let v=a.value.trim().toLowerCase();
   let ans=questions[i][1].toLowerCase();
   if(v===ans){score++;feedback.textContent="Correct!"}
   else{feedback.textContent="Incorrect"}
   i++;
-  if(i<50) setTimeout(loadQ,400);
+  if(i<75) setTimeout(loadQ,400);
   else finishQ();
 }
 
 function finishQ(){
-  quiz.innerHTML=`<h1>Score</h1><h2>${score}/50</h2>`;
-  if(score===50) party();
+  quiz.innerHTML=`<h1>Score</h1><h2>${score}/75</h2>`;
+  if(score===75) party();
 }
 
-function unlockApp(){
-  quiz.style.display="none";
-  document.getElementById("app").style.display="block";
-  openChat();
-}
-
-/* ===== CONFETTI / AWARD ===== */
+/* ===== CONFETTI ===== */
 function party(){
-  const c=document.getElementById("confetti"),ctx=c.getContext("2d");
-  c.width=innerWidth;c.height=innerHeight;c.style.display="block";
+  const c=document.getElementById("confetti");
+  const ctx=c.getContext("2d");
+  c.width=innerWidth;c.height=innerHeight;
+  c.style.display="block";
   document.getElementById("bigText").style.display="block";
-  let p=[...Array(200)].map(()=>({x:Math.random()*c.width,y:Math.random()*-c.height,s:Math.random()*3+2}));
-  (function d(){ctx.clearRect(0,0,c.width,c.height);
-    p.forEach(o=>{ctx.fillStyle=`hsl(${Math.random()*360},100%,50%)`;ctx.fillRect(o.x,o.y,6,6);o.y+=o.s;if(o.y>c.height)o.y=0});
-    requestAnimationFrame(d);
-  })();
+  let pieces=[...Array(200)].map(()=>({
+    x:Math.random()*c.width,y:Math.random()*-c.height,
+    r:Math.random()*6+4,s:Math.random()*3+2
+  }));
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    pieces.forEach(p=>{
+      ctx.fillStyle=`hsl(${Math.random()*360},100%,50%)`;
+      ctx.fillRect(p.x,p.y,p.r,p.r);
+      p.y+=p.s;
+      if(p.y>c.height)p.y=0;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
 }
 
 /* ===== DOCUMENTS ===== */
 function openDoc(){
-  content.innerHTML=`<h2>Document</h2><button id="premiumBtn">Unlock Premium</button><div id="editor"></div>`;
-  const ed=document.getElementById("editor");ed.contentEditable=true;
+  content.innerHTML=`<h2>Document</h2>
+  <button id="premiumBtn">Unlock Premium</button>
+  <div id="editor"></div>`;
+  const ed=document.getElementById("editor");
+  ed.contentEditable=true;
   let typing=false;
   db.ref("doc").off();
   db.ref("doc").on("value",s=>{if(!typing)ed.innerHTML=s.val()||""});
   ed.oninput=()=>{typing=true;db.ref("doc").set(ed.innerHTML);setTimeout(()=>typing=false,200)};
   premiumBtn.onclick=()=>{
     if(prompt("Enter premium code")!=="12345678h")return alert("Wrong");
-    content.innerHTML=`<h2>Premium Document</h2><button id="editBtn">Edit</button><div id="editor"></div>`;
-    const ped=document.getElementById("editor");ped.contentEditable=false;
+    content.innerHTML=`<h2>Premium Document</h2>
+    <button id="editBtn">Edit</button><div id="editor"></div>`;
+    const ped=document.getElementById("editor");
     let ptyping=false;
+    ped.contentEditable=false;
     db.ref("premiumDoc").off();
     db.ref("premiumDoc").on("value",s=>{if(!ptyping)ped.innerHTML=s.val()||""});
     ped.oninput=()=>{if(ped.isContentEditable){ptyping=true;db.ref("premiumDoc").set(ped.innerHTML);setTimeout(()=>ptyping=false,200)}};
-    editBtn.onclick=()=>{if(prompt("Enter edit code")!=="1219")return alert("Wrong");ped.contentEditable=true};
+    editBtn.onclick=()=>{
+      if(prompt("Enter edit code")!=="1219")return alert("Wrong");
+      ped.contentEditable=true;
+    };
   };
 }
 
-/* ===== CHAT ===== */
-let nickname=localStorage.getItem("nickname"),lastMsgTime=0;
+/* ===== CHAT / YT / ETC (UNCHANGED) ===== */
+let nickname=localStorage.getItem("nickname");
 function openChat(){
   if(!nickname){nickname=prompt("Choose nickname")||"Anonymous";localStorage.setItem("nickname",nickname)}
   content.innerHTML=`<h2>Chat</h2><button onclick="changeName()">Change Nickname</button>
   <button onclick="clearChat()">Clear Chat</button><div id="chatBox"></div>
   <input id="msgInput"><button onclick="sendMsg()">Send</button>`;
-  const msgInput=document.getElementById("msgInput");
-  const chatBox=document.getElementById("chatBox");
   db.ref("chat").on("child_added",s=>{
-    const m=s.val();
-    const div=document.createElement("div");
-    div.className="msg";
-    div.innerHTML=`<div class="time">${new Date(m.time).toLocaleTimeString()}</div><span class="name">${m.name}</span>: ${m.text}`;
-    chatBox.appendChild(div);
-    chatBox.scrollTop=chatBox.scrollHeight;
-  });
-  // ENTER key sends message
-  msgInput.addEventListener("keydown",e=>{
-    if(e.key==="Enter") sendMsg();
+    const m=s.val();chatBox.innerHTML+=
+    `<div class="msg"><div class="time">${new Date(m.time).toLocaleString()}</div>
+    <span class="name">${m.name}</span>: ${m.text}</div>`;
   });
 }
-function sendMsg(){
-  const now=Date.now();
-  if(now-lastMsgTime<1000){alert("Slow down!");return;}
-  lastMsgTime=now;
-  const msgInput=document.getElementById("msgInput");
-  if(msgInput.value.trim()) db.ref("chat").push({name:nickname,text:msgInput.value,time:Date.now()});
-  msgInput.value="";
-}
+function sendMsg(){if(msgInput.value.trim())db.ref("chat").push({name:nickname,text:msgInput.value,time:Date.now()});msgInput.value="";}
 function changeName(){const n=prompt("New nickname");if(n){nickname=n;localStorage.setItem("nickname",n)}}
 function clearChat(){if(prompt("Code")!=="Ethandagod")return;db.ref("chat").remove();openChat()}
-
-/* ===== YOUTUBE / GAMES / PROXY ===== */
-function openYT(){content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame"></iframe>`;}
-function loadYT(){let u=ytInput.value,id=u.includes("watch?v=")?u.split("watch?v=")[1].split("&")[0]:u.split("/").pop();ytFrame.src="https://www.youtube.com/embed/"+id;}
-function openGames(){window.open("game.html","_blank");}
-function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
-
-/* ===== INIT HOME SCREEN ===== */
-document.getElementById("home").style.display="block";
+function openYT(){content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame"></iframe>`}
+function loadYT(){let u=ytInput.value,id=u.includes("watch?v=")?u.split("watch?v=")[1]:u.split("/").pop();ytFrame.src="https://www.youtube.com/embed/"+id}
+function openGames(){window.open("game.html","_blank")}
+function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank")}
 </script>
 </body>
 </html>
