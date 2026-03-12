@@ -185,7 +185,7 @@ function clearChat(){if(prompt("Enter code to clear chat:")!=="Ethandagod") retu
 function openYT(){content.innerHTML=`<input id="ytInput" placeholder="YouTube link"><button onclick="loadYT()">Load Video</button><br><br><iframe id="ytFrame"></iframe>`;}
 function loadYT(){let u=ytInput.value,id="";if(u.includes("watch?v="))id=u.split("watch?v=")[1].split("&")[0];else if(u.includes("youtu.be/"))id=u.split("youtu.be/")[1];ytFrame.src="https://www.youtube.com/embed/"+id;}
 function openGames(){window.open("game.html","_blank");}
-function openProxy(){window.open("https://rammer.nana.mikechan.ca/","_blank");}
+function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
 function formatTime(ts){
   const d=new Date(ts),t=new Date(),y=new Date();y.setDate(t.getDate()-1);
   const h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0"),ap=d.getHours()>=12?"pm":"am";
