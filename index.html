@@ -66,7 +66,7 @@ const db=firebase.database();
 
 let isAdmin=false;
 
-// ===== QUIZ (ORIGINAL) =====
+// ===== QUIZ (UNCHANGED) =====
 let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"],["-5+12","7"],["6²÷3","12"],["Area 5×4","20"],["Perimeter square 6","24"],["2x=18","9"],
 ["9³","729"],["1/2 of 3/4","3/8"],["10⁻¹","0.1"],["Mean of 2,4,6","4"],["5x=25","5"],["√144","12"],["7+(-3)","4"],["20% of 50","10"],["x+7=12","5"],["3×(4+2)","18"],
 ["8×9","72"],["64÷8","8"],["5²+3","28"],["√196","14"],["10% of 150","15"],["-3×6","-18"],["12÷4+3","6"],["Area triangle 6×5÷2","15"],["Perimeter rect 5×3","16"],["2x+5=15","5"],
@@ -152,15 +152,37 @@ function openChat(){
     chatBox.scrollTop=chatBox.scrollHeight;
   });
 
+  // ===== FIXED ADMIN PANEL =====
   if(isAdmin){
-    db.ref("users").on("value",snap=>{
-      let html="";
-      snap.forEach(u=>{
+
+    function renderAdmin(usersSnap, bansSnap){
+      let html="<b>Active Users:</b><br>";
+
+      usersSnap.forEach(u=>{
         html+=`${u.val()}
-        <button onclick="banUser('${u.key}')">Ban</button>
-        <button onclick="unbanUser('${u.key}')">Unban</button><br>`;
+        <button onclick="banUser('${u.key}')">Ban</button><br>`;
       });
+
+      html+="<br><b>Banned Users:</b><br>";
+
+      bansSnap.forEach(b=>{
+        html+=`${b.key}
+        <button onclick="unbanUser('${b.key}')">Unban</button><br>`;
+      });
+
       document.getElementById("userList").innerHTML=html;
+    }
+
+    let usersData=null, bansData=null;
+
+    db.ref("users").on("value",snap=>{
+      usersData=snap;
+      if(bansData) renderAdmin(usersData,bansData);
+    });
+
+    db.ref("bans").on("value",snap=>{
+      bansData=snap;
+      if(usersData) renderAdmin(usersData,bansData);
     });
   }
 
