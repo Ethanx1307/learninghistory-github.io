@@ -65,7 +65,8 @@ const firebaseConfig={
 };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
-const userRef=db.ref("usernames");
+const userRef=db.ref("usernames"); // active users
+const allUsersRef=db.ref("allUsers"); // all ever registered usernames
 
 /* ===== ADMIN FLAG ===== */
 let isAdmin=false;
@@ -78,9 +79,10 @@ function showBanned(){
   document.body.innerHTML=`<h1 style="text-align:center;margin-top:40vh">🚫 You are banned</h1>`;
 }
 
+// Listen to bans
 db.ref("bans").on("value",snap=>{
   const bans=snap.val()||{};
-  if(nickname && bans[nickname]){
+  if(nickname && bans[nickname.toLowerCase()]){
     localStorage.setItem("banned","true");
     isBanned=true;
     showBanned();
@@ -152,9 +154,10 @@ async function openChat(){
       n=n.trim();
       let lname=n.toLowerCase();
 
-      const snap=await userRef.child(lname).get();
+      const snap=await allUsersRef.child(lname).get();
       if(snap.exists()){ alert("Username not available"); continue; }
 
+      await allUsersRef.child(lname).set(true);
       await userRef.child(lname).set(true);
       userRef.child(lname).onDisconnect().remove();
       nickname=n;
@@ -206,10 +209,13 @@ async function changeName(){
     if(!n) return;
     n=n.trim();
     let lname=n.toLowerCase();
-    const snap=await userRef.child(lname).get();
+
+    const snap=await allUsersRef.child(lname).get();
     if(snap.exists()){ alert("Username not available"); continue; }
 
+    // Remove old username from active list
     await userRef.child(nickname.toLowerCase()).remove();
+    await allUsersRef.child(lname).set(true);
     await userRef.child(lname).set(true);
     userRef.child(lname).onDisconnect().remove();
     nickname=n;
@@ -224,7 +230,7 @@ async function banUser(){
   let u=prompt("Username to ban:");
   if(!u) return;
   let lname=u.trim().toLowerCase();
-  const snap=await userRef.child(lname).get();
+  const snap=await allUsersRef.child(lname).get();
   if(!snap.exists()){
     alert("Username not recognized");
     return;
