@@ -73,6 +73,9 @@ let isAdmin=false;
 let isBanned=false;
 let nickname=null;
 
+/* ===== RESET LOCAL DATA ===== */
+localStorage.clear(); // Fresh start for everyone
+
 /* ===== BANNED DISPLAY ===== */
 function showBanned(){
   document.body.innerHTML=`<h1 style="text-align:center;margin-top:40vh">🚫 You are banned</h1>`;
@@ -83,7 +86,6 @@ db.ref("bans").on("value",snap=>{
   const bans=snap.val()||{};
   if(nickname && bans[nickname.toLowerCase()]){
     isBanned=true;
-    localStorage.setItem("banned","true");
     showBanned();
   }
 });
@@ -109,7 +111,7 @@ loadQ();
 function submitQ(){
   const v=a.value.trim().toLowerCase();
   if(v==="etx12345678h"){ isAdmin=true; unlockApp(); return; }
-  if(v==="open sesame"){ unlockApp(); return; }
+  if(v.replace(/\s+/g,'')==="opensesame"){ unlockApp(); return; } // any caps/spaces
 
   if(v===questions[i][1]){
     feedback.textContent="Correct!"; feedback.className="correct"; score++;
@@ -128,12 +130,10 @@ async function unlockApp(){
   quiz.style.display="none";
   document.getElementById("app").style.display="block";
 
-  // RESET old localStorage so everyone re-enters username
-  localStorage.removeItem("nickname");
   nickname=null;
 
   while(!nickname){
-    let n=prompt("Enter your username:");
+    let n=prompt("Enter a unique username:");
     if(!n) continue;
     n=n.trim(); if(!n) continue;
     const lname=n.toLowerCase();
@@ -142,6 +142,11 @@ async function unlockApp(){
       alert("Username already taken. Please choose another.");
       continue;
     }
+
+    // Check if banned
+    const banSnap = await db.ref("bans/"+lname).get();
+    if(banSnap.exists()){ alert("This username is banned!"); continue; }
+
     nickname=n;
     await allUsersRef.child(lname).set(true);
     await userRef.child(lname).set(true);
