@@ -149,9 +149,7 @@ async function openChat(){
       n=n.trim();
       let lname=n.toLowerCase();
 
-      const snap=await allUsersRef.child(lname).get();
-      if(snap.exists()){ alert("Username not available"); continue; }
-
+      // Automatically register username in allUsers
       await allUsersRef.child(lname).set(true);
       await userRef.child(lname).set(true);
       userRef.child(lname).onDisconnect().remove();
@@ -218,7 +216,7 @@ async function changeName(){
   }
 }
 
-/* ===== ADMIN BAN (CLICKABLE LIST, ALL USERS) ===== */
+/* ===== ADMIN BAN ===== */
 async function banUser() {
   const snap = await allUsersRef.get();
   const users = snap.val() || {};
