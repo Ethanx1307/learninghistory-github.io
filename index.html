@@ -218,31 +218,60 @@ async function changeName(){
   }
 }
 
-/* ===== ADMIN BAN ===== */
+/* ===== ADMIN BAN (UPDATED) ===== */
 async function banUser(){
-  let u=prompt("Username to ban:");
-  if(!u) return;
-  let lname=u.trim().toLowerCase();
-  const snap=await allUsersRef.child(lname).get();
-  if(!snap.exists()){
-    alert("Username not recognized");
+  const snap = await userRef.get();
+  const users = snap.val() || {};
+  const usernames = Object.keys(users);
+  if(usernames.length === 0){
+    alert("No users online to ban.");
     return;
   }
-  if(confirm(`Are you sure you want to ban ${u}?`)){
-    db.ref("bans/"+lname).set(true);
+
+  let list = "Select a user to ban:\n";
+  usernames.forEach((u,i)=> list += `${i+1}. ${u}\n`);
+  let choice = prompt(list + "\nEnter the number of the user:");
+
+  if(!choice) return;
+  let index = parseInt(choice)-1;
+  if(isNaN(index) || index<0 || index>=usernames.length){
+    alert("Invalid choice");
+    return;
+  }
+
+  let selectedUser = usernames[index];
+
+  if(confirm(`Are you sure you want to ban ${selectedUser}?`)){
+    db.ref("bans/"+selectedUser).set(true);
+    alert(`${selectedUser} has been banned.`);
   }
 }
+
 async function unbanUser(){
-  let u=prompt("Username to unban:");
-  if(!u) return;
-  let lname=u.trim().toLowerCase();
-  const snap=await db.ref("bans/"+lname).get();
-  if(!snap.exists()){
-    alert("Username not recognized");
+  const snap = await db.ref("bans").get();
+  const bans = snap.val() || {};
+  const bannedUsers = Object.keys(bans);
+  if(bannedUsers.length === 0){
+    alert("No users are banned.");
     return;
   }
-  if(confirm(`Are you sure you want to unban ${u}?`)){
-    db.ref("bans/"+lname).remove();
+
+  let list = "Select a user to unban:\n";
+  bannedUsers.forEach((u,i)=> list += `${i+1}. ${u}\n`);
+  let choice = prompt(list + "\nEnter the number of the user:");
+
+  if(!choice) return;
+  let index = parseInt(choice)-1;
+  if(isNaN(index) || index<0 || index>=bannedUsers.length){
+    alert("Invalid choice");
+    return;
+  }
+
+  let selectedUser = bannedUsers[index];
+
+  if(confirm(`Are you sure you want to unban ${selectedUser}?`)){
+    db.ref("bans/"+selectedUser).remove();
+    alert(`${selectedUser} has been unbanned.`);
   }
 }
 
