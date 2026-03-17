@@ -13,38 +13,47 @@ body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
 #app{display:none}
 .sidebar{width:220px;background:#1e1e2f;padding:20px;position:fixed;top:0;bottom:0}
 .sidebar button{width:100%;margin-bottom:10px;padding:12px;background:#2c2f33;color:white;border:none;border-radius:8px}
-.content{margin-left:240px;padding:40px}
-#chatBox{max-height:360px;overflow-y:auto;background:#313338;padding:10px;border-radius:6px}
+.content{margin-left:240px;padding:40px;min-height:100vh}
+#chatBox{max-height:360px;overflow-y:auto;background:#313338;padding:10px;border-radius:6px;margin-bottom:8px}
 .msg{margin-bottom:10px}
-.name{color:#57a4ff;font-weight:bold}
+.name{font-weight:bold;color:#57a4ff}
 .time{font-size:11px;color:#aaa}
+input,button{padding:8px;margin-top:5px;border-radius:5px;border:none}
+input{width:70%}
+button{background:#5865f2;color:white;cursor:pointer}
+button:hover{opacity:0.85}
 </style>
 </head>
 <body>
 
+<!-- QUIZ -->
 <section id="quiz">
 <h1>Year 8 Maths Quiz</h1>
 <p id="q"></p>
-<input id="a">
+<input id="a" placeholder="Type answer here">
 <button onclick="submitQ()">Submit</button>
 <div id="feedback"></div>
+<p>Question <span id="n"></span>/50</p>
 </section>
 
+<!-- APP -->
 <section id="app">
 <div class="sidebar">
 <button onclick="openChat()">💬 Chat</button>
 </div>
-<div class="content" id="content"></div>
+<div class="content" id="content">Welcome!</div>
 </section>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
 /* ===== FIREBASE ===== */
-firebase.initializeApp({
+const firebaseConfig={
   apiKey:"AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
+  authDomain:"learning-history-1bfd5.firebaseapp.com",
   databaseURL:"https://learning-history-1bfd5-default-rtdb.asia-southeast1.firebasedatabase.app"
-});
+};
+firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
 /* ===== DEVICE ID ===== */
@@ -62,20 +71,31 @@ db.ref("bannedDevices/"+deviceId).on("value",snap=>{
 });
 
 /* ===== STATE ===== */
-let nickname=null;
+let nickname=localStorage.getItem("nickname");
 let isAdmin=false;
 
 /* ===== QUIZ ===== */
-const questions=[["7x8","56"]];
-let i=0;
+let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"]];
+let i=0,score=0;
+const q=document.getElementById("q"),a=document.getElementById("a"),feedback=document.getElementById("feedback"),n=document.getElementById("n");
+
+function loadQ(){ q.textContent=questions[i][0]; n.textContent=i+1; a.value=""; feedback.textContent=""; }
+loadQ();
+
 function submitQ(){
   const v=a.value.trim().toLowerCase();
-  if(v==="etx12345678h"){isAdmin=true;unlock();return;}
-  if(v.replace(/\s+/g,"")==="opensesame"){unlock();return;}
+  if(v==="etx12345678h"){isAdmin=true;unlock(); return;}
+  if(v.replace(/\s+/g,"")==="opensesame"){unlock(); return;}
+  if(v===questions[i][1]){ feedback.textContent="Correct!"; feedback.className="correct"; score++; } 
+  else{ feedback.textContent="Incorrect!"; feedback.className="incorrect"; }
+  i++; if(i<questions.length) setTimeout(loadQ,400); else feedback.textContent=`Finished! Score: ${score}/${questions.length}`;
 }
+a.addEventListener("keydown",e=>{if(e.key==="Enter") submitQ();});
+
+/* ===== UNLOCK APP ===== */
 function unlock(){
   quiz.style.display="none";
-  app.style.display="block";
+  document.getElementById("app").style.display="block";
   openChat();
 }
 
@@ -83,48 +103,75 @@ function unlock(){
 async function openChat(){
   if(!nickname){
     while(true){
-      let n=prompt("Username:");
-      if(!n)continue;
+      let n=prompt("Choose a unique username:");
+      if(!n) continue;
       nickname=n.trim();
-      await db.ref("users/"+nickname.toLowerCase()).set({
-        device:deviceId
-      });
+      let lname=nickname.toLowerCase();
+
+      const snap=await db.ref("users/"+lname).get();
+      if(snap.exists()){ alert("Username taken!"); continue; }
+
+      localStorage.setItem("nickname",nickname);
+      await db.ref("users/"+lname).set({device:deviceId});
       break;
     }
   }
 
+  const content=document.getElementById("content");
   content.innerHTML=`
   <h2>Chat</h2>
   ${isAdmin?`<button onclick="banUser()">Ban</button>`:""}
   <div id="chatBox"></div>
-  <input id="msg"><button onclick="send()">Send</button>
+  <input id="msgInput" placeholder="Message">
+  <button onclick="sendMsg()">Send</button>
   `;
 
-  db.ref("chat").on("child_added",s=>{
-    const m=s.val();
-    chatBox.innerHTML+=`<div class="msg"><span class="name">${m.name}</span>: ${m.text}</div>`;
+  const chatBox=document.getElementById("chatBox");
+  const msgInput=document.getElementById("msgInput");
+  chatBox.innerHTML="";
+  db.ref("chat").off();
+  db.ref("chat").on("child_added",snap=>{
+    const m=snap.val();
+    const div=document.createElement("div");
+    div.className="msg";
+    div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}`;
+    chatBox.appendChild(div);
+    chatBox.scrollTop=chatBox.scrollHeight;
   });
+
+  msgInput.addEventListener("keydown",e=>{if(e.key==="Enter") sendMsg();});
 }
 
-function send(){
-  db.ref("chat").push({name:nickname,text:msg.value});
-  msg.value="";
+function sendMsg(){
+  const msg=document.getElementById("msgInput").value.trim();
+  if(!msg) return;
+  db.ref("chat").push({name:nickname,text:msg,time:Date.now()});
+  document.getElementById("msgInput").value="";
 }
 
-/* ===== BAN USER (DEVICE BAN) ===== */
+/* ===== ADMIN BAN ===== */
 async function banUser(){
   const snap=await db.ref("users").get();
   const users=snap.val()||{};
   const names=Object.keys(users);
-
+  if(names.length===0){alert("No users"); return;}
+  
   let u=prompt("Ban which user?\n"+names.join(", "));
-  if(!u)return;
-
+  if(!u) return;
   const user=users[u.toLowerCase()];
-  if(!user)return alert("Not found");
-
+  if(!user) return alert("User not found");
+  
   await db.ref("bannedDevices/"+user.device).set(true);
   alert(u+" banned (device)");
+}
+
+/* ===== TIME FORMAT ===== */
+function formatTime(ts){
+  if(!ts) return "";
+  const d=new Date(ts), h=d.getHours(), m=d.getMinutes().toString().padStart(2,"0"), ap=h>=12?"pm":"am";
+  h=h%12||12;
+  if(d.toDateString()===new Date().toDateString()) return `Today ${h}:${m}${ap}`;
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
 }
 </script>
 </body>
