@@ -29,7 +29,6 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 </head>
 <body>
 
-<!-- QUIZ -->
 <section id="quiz">
 <h1>Year 8 Maths Quiz</h1>
 <p id="q"></p>
@@ -39,7 +38,6 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 <p>Question <span id="n"></span>/50</p>
 </section>
 
-<!-- APP -->
 <section id="app">
 <div class="sidebar">
 <button onclick="openDoc()">📄 Document</button>
@@ -68,7 +66,7 @@ const db=firebase.database();
 
 let isAdmin=false;
 
-// ===== QUIZ (UNCHANGED FULL) =====
+// ===== QUIZ (ORIGINAL) =====
 let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"],["-5+12","7"],["6²÷3","12"],["Area 5×4","20"],["Perimeter square 6","24"],["2x=18","9"],
 ["9³","729"],["1/2 of 3/4","3/8"],["10⁻¹","0.1"],["Mean of 2,4,6","4"],["5x=25","5"],["√144","12"],["7+(-3)","4"],["20% of 50","10"],["x+7=12","5"],["3×(4+2)","18"],
 ["8×9","72"],["64÷8","8"],["5²+3","28"],["√196","14"],["10% of 150","15"],["-3×6","-18"],["12÷4+3","6"],["Area triangle 6×5÷2","15"],["Perimeter rect 5×3","16"],["2x+5=15","5"],
@@ -79,34 +77,20 @@ questions.sort(()=>Math.random()-0.5);
 let i=0,score=0;
 const q=document.getElementById("q"),a=document.getElementById("a"),feedback=document.getElementById("feedback"),n=document.getElementById("n");
 
-function loadQ(){
-  q.textContent=questions[i][0];
-  n.textContent=i+1;
-  a.value="";
-  feedback.textContent="";
-}
+function loadQ(){q.textContent=questions[i][0];n.textContent=i+1;a.value="";feedback.textContent="";}
 loadQ();
 
 function submitQ(){
   const v=a.value.trim().toLowerCase();
 
-  if(v==="etx12345678h"){
-    isAdmin=true;
-    unlockApp();
-    return;
-  }
+  if(v==="etx12345678h"){isAdmin=true;unlockApp();return;}
+  if(v==="opensesame"||v==="open sesame"){unlockApp();return;}
 
-  if(v==="opensesame"||v==="open sesame"){
-    unlockApp();
-    return;
-  }
-
-  if(v===questions[i][1]) feedback.textContent="Correct!";
-  else feedback.textContent="Incorrect";
+  if(v===questions[i][1]){score++;feedback.textContent="Correct!"}
+  else{feedback.textContent="Incorrect"}
 
   i++;
-  if(i<questions.length) setTimeout(loadQ,400);
-  else finishQ();
+  if(i<50){setTimeout(loadQ,400);}else{finishQ();}
 }
 
 function finishQ(){
@@ -132,7 +116,7 @@ function openDoc(){
   };
 }
 
-// ===== CHAT + ADMIN BAN (ID BASED) =====
+// ===== CHAT + ADMIN =====
 let nickname=localStorage.getItem("nickname");
 let userId=localStorage.getItem("userId")||Date.now().toString();
 localStorage.setItem("userId",userId);
@@ -152,8 +136,7 @@ function openChat(){
   <button onclick="clearChat()">Clear Chat</button>
   <div id="chatBox"></div>
   <input id="msgInput"><button onclick="sendMsg()">Send</button>
-  ${isAdmin?'<div class="adminBox"><h3>Admin Panel</h3><div id="userList"></div></div>':""}
-  `;
+  ${isAdmin?'<div class="adminBox"><h3>Admin Panel</h3><div id="userList"></div></div>':""}`;
 
   db.ref("users/"+userId).set(nickname);
   db.ref("users/"+userId).onDisconnect().remove();
@@ -164,7 +147,7 @@ function openChat(){
     const m=snap.val();
     const div=document.createElement("div");
     div.className="msg";
-    div.innerHTML=`<span class="name">${m.name}</span>: ${m.text}`;
+    div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}`;
     chatBox.appendChild(div);
     chatBox.scrollTop=chatBox.scrollHeight;
   });
@@ -173,7 +156,7 @@ function openChat(){
     db.ref("users").on("value",snap=>{
       let html="";
       snap.forEach(u=>{
-        html+=`${u.val()} 
+        html+=`${u.val()}
         <button onclick="banUser('${u.key}')">Ban</button>
         <button onclick="unbanUser('${u.key}')">Unban</button><br>`;
       });
@@ -184,7 +167,7 @@ function openChat(){
   window.sendMsg=function(){
     const input=document.getElementById("msgInput");
     if(!input.value.trim()) return;
-    db.ref("chat").push({name:nickname,text:input.value});
+    db.ref("chat").push({name:nickname,text:input.value,time:Date.now()});
     input.value="";
   }
 }
@@ -211,6 +194,16 @@ function loadYT(){
 }
 function openGames(){window.open("game.html","_blank");}
 function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
+
+// ===== 12 HOUR TIME =====
+function formatTime(ts){
+  const d=new Date(ts),t=new Date(),y=new Date();y.setDate(t.getDate()-1);
+  let h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
+  let ap=d.getHours()>=12?"PM":"AM";
+  if(d.toDateString()===t.toDateString()) return `Today ${h}:${m}${ap}`;
+  if(d.toDateString()===y.toDateString()) return `Yesterday ${h}:${m}${ap}`;
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
+}
 </script>
 </body>
 </html>
