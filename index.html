@@ -218,61 +218,121 @@ async function changeName(){
   }
 }
 
-/* ===== ADMIN BAN (UPDATED) ===== */
-async function banUser(){
-  const snap = await userRef.get();
+/* ===== ADMIN BAN (CLICKABLE MODAL VERSION) ===== */
+async function banUser() {
+  const snap = await allUsersRef.get();
   const users = snap.val() || {};
   const usernames = Object.keys(users);
   if(usernames.length === 0){
-    alert("No users online to ban.");
+    alert("No users to ban.");
     return;
   }
 
-  let list = "Select a user to ban:\n";
-  usernames.forEach((u,i)=> list += `${i+1}. ${u}\n`);
-  let choice = prompt(list + "\nEnter the number of the user:");
+  const modal = document.createElement("div");
+  Object.assign(modal.style, {
+    position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
+    backgroundColor: "rgba(0,0,0,0.8)", color: "white", display: "flex",
+    justifyContent: "center", alignItems: "center", zIndex: 1000, overflow: "auto"
+  });
 
-  if(!choice) return;
-  let index = parseInt(choice)-1;
-  if(isNaN(index) || index<0 || index>=usernames.length){
-    alert("Invalid choice");
-    return;
-  }
+  const box = document.createElement("div");
+  Object.assign(box.style, {
+    backgroundColor: "#222", padding: "20px", borderRadius: "12px", minWidth: "300px"
+  });
 
-  let selectedUser = usernames[index];
+  box.innerHTML = `<h2>Ban Users</h2>`;
 
-  if(confirm(`Are you sure you want to ban ${selectedUser}?`)){
-    db.ref("bans/"+selectedUser).set(true);
-    alert(`${selectedUser} has been banned.`);
-  }
+  usernames.forEach(u => {
+    const row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.justifyContent = "space-between";
+    row.style.marginBottom = "8px";
+
+    const name = document.createElement("span");
+    name.textContent = u;
+
+    const btn = document.createElement("button");
+    btn.textContent = "Ban";
+    btn.style.marginLeft = "8px";
+    btn.onclick = async () => {
+      if(confirm(`Are you sure you want to ban ${u}?`)){
+        await db.ref("bans/"+u).set(true);
+        alert(`${u} has been banned.`);
+      }
+    };
+
+    row.appendChild(name);
+    row.appendChild(btn);
+    box.appendChild(row);
+  });
+
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "Close";
+  closeBtn.style.marginTop = "12px";
+  closeBtn.onclick = () => document.body.removeChild(modal);
+  box.appendChild(closeBtn);
+
+  modal.appendChild(box);
+  document.body.appendChild(modal);
 }
 
-async function unbanUser(){
+async function unbanUser() {
   const snap = await db.ref("bans").get();
   const bans = snap.val() || {};
   const bannedUsers = Object.keys(bans);
+
   if(bannedUsers.length === 0){
     alert("No users are banned.");
     return;
   }
 
-  let list = "Select a user to unban:\n";
-  bannedUsers.forEach((u,i)=> list += `${i+1}. ${u}\n`);
-  let choice = prompt(list + "\nEnter the number of the user:");
+  const modal = document.createElement("div");
+  Object.assign(modal.style, {
+    position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
+    backgroundColor: "rgba(0,0,0,0.8)", color: "white", display: "flex",
+    justifyContent: "center", alignItems: "center", zIndex: 1000, overflow: "auto"
+  });
 
-  if(!choice) return;
-  let index = parseInt(choice)-1;
-  if(isNaN(index) || index<0 || index>=bannedUsers.length){
-    alert("Invalid choice");
-    return;
-  }
+  const box = document.createElement("div");
+  Object.assign(box.style, {
+    backgroundColor: "#222", padding: "20px", borderRadius: "12px", minWidth: "300px"
+  });
 
-  let selectedUser = bannedUsers[index];
+  box.innerHTML = `<h2>Unban Users</h2>`;
 
-  if(confirm(`Are you sure you want to unban ${selectedUser}?`)){
-    db.ref("bans/"+selectedUser).remove();
-    alert(`${selectedUser} has been unbanned.`);
-  }
+  bannedUsers.forEach(u => {
+    const row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.justifyContent = "space-between";
+    row.style.marginBottom = "8px";
+
+    const name = document.createElement("span");
+    name.textContent = u;
+
+    const btn = document.createElement("button");
+    btn.textContent = "Unban";
+    btn.style.marginLeft = "8px";
+    btn.onclick = async () => {
+      if(confirm(`Are you sure you want to unban ${u}?`)){
+        await db.ref("bans/"+u).remove();
+        alert(`${u} has been unbanned.`);
+        row.remove();
+      }
+    };
+
+    row.appendChild(name);
+    row.appendChild(btn);
+    box.appendChild(row);
+  });
+
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "Close";
+  closeBtn.style.marginTop = "12px";
+  closeBtn.onclick = () => document.body.removeChild(modal);
+  box.appendChild(closeBtn);
+
+  modal.appendChild(box);
+  document.body.appendChild(modal);
 }
 
 /* ===== CLEAR CHAT ===== */
