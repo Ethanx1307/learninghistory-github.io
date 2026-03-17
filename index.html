@@ -65,15 +65,13 @@ const firebaseConfig={
 };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
-const userRef=db.ref("usernames"); // active users
-const allUsersRef=db.ref("allUsers"); // all ever registered usernames
+const userRef=db.ref("usernames");
+const allUsersRef=db.ref("allUsers");
 
 /* ===== ADMIN FLAG ===== */
 let isAdmin=false;
-
-/* ===== BAN & NICKNAME ===== */
-let isBanned=localStorage.getItem("banned")==="true";
-let nickname=localStorage.getItem("nickname");
+let isBanned=false;
+let nickname=null;
 
 /* ===== BANNED DISPLAY ===== */
 function showBanned(){
@@ -84,23 +82,21 @@ function showBanned(){
 db.ref("bans").on("value",snap=>{
   const bans=snap.val()||{};
   if(nickname && bans[nickname.toLowerCase()]){
-    localStorage.setItem("banned","true");
     isBanned=true;
+    localStorage.setItem("banned","true");
     showBanned();
   }
 });
 
 /* ===== QUIZ ===== */
-let questions=[
-["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],
-["15% of 200","30"],["-5+12","7"],["6²÷3","12"]
-].sort(()=>Math.random()-0.5);
+let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],
+["15% of 200","30"],["-5+12","7"],["6²÷3","12"]].sort(()=>Math.random()-0.5);
 
 let i=0,score=0;
 const q=document.getElementById("q"),
-a=document.getElementById("a"),
-feedback=document.getElementById("feedback"),
-n=document.getElementById("n");
+      a=document.getElementById("a"),
+      feedback=document.getElementById("feedback"),
+      n=document.getElementById("n");
 
 function loadQ(){
   q.textContent=questions[i][0];
@@ -111,54 +107,47 @@ function loadQ(){
 loadQ();
 
 function submitQ(){
-  const v = a.value.trim().toLowerCase();
-
-  // ADMIN CODE
-  if(v.toLowerCase()==="etx12345678h"){ isAdmin=true; unlockApp(); return; }
-  // OPEN SESAME CODE
-  if(v.toLowerCase()==="open sesame"){ unlockApp(); return; }
+  const v=a.value.trim().toLowerCase();
+  if(v==="etx12345678h"){ isAdmin=true; unlockApp(); return; }
+  if(v==="open sesame"){ unlockApp(); return; }
 
   if(v===questions[i][1]){
-    feedback.textContent="Correct!";
-    feedback.className="correct";
-    score++;
+    feedback.textContent="Correct!"; feedback.className="correct"; score++;
   } else{
-    feedback.textContent="Incorrect!";
-    feedback.className="incorrect";
+    feedback.textContent="Incorrect!"; feedback.className="incorrect";
   }
 
-  i++;
-  if(i<questions.length) setTimeout(loadQ,400);
+  i++; if(i<questions.length) setTimeout(loadQ,400);
   else feedback.textContent=`Finished! Score: ${score}/${questions.length}`;
 }
 a.addEventListener("keydown", e => { if(e.key==="Enter") submitQ(); });
 
-/* ===== UNLOCK APP ===== */
+/* ===== UNLOCK APP & PROMPT USERNAME ===== */
 async function unlockApp(){
   if(isBanned){showBanned(); return;}
   quiz.style.display="none";
   document.getElementById("app").style.display="block";
 
-  // PROMPT FOR USERNAME ONCE & CHECK DUPLICATES
-  if(!nickname){
-    while(true){
-      let n=prompt("Enter your username:");
-      if(!n) continue;
-      n=n.trim();
-      if(!n) continue;
-      const lname=n.toLowerCase();
-      const snap = await allUsersRef.child(lname).get();
-      if(snap.exists()){
-        alert("Username already taken. Please choose another.");
-        continue;
-      }
-      nickname=n;
-      await allUsersRef.child(lname).set(true);
-      await userRef.child(lname).set(true);
-      userRef.child(lname).onDisconnect().remove();
-      localStorage.setItem("nickname",nickname);
-      break;
+  // RESET old localStorage so everyone re-enters username
+  localStorage.removeItem("nickname");
+  nickname=null;
+
+  while(!nickname){
+    let n=prompt("Enter your username:");
+    if(!n) continue;
+    n=n.trim(); if(!n) continue;
+    const lname=n.toLowerCase();
+    const snap = await allUsersRef.child(lname).get();
+    if(snap.exists()){
+      alert("Username already taken. Please choose another.");
+      continue;
     }
+    nickname=n;
+    await allUsersRef.child(lname).set(true);
+    await userRef.child(lname).set(true);
+    userRef.child(lname).onDisconnect().remove();
+    localStorage.setItem("nickname",nickname);
+    break;
   }
 
   openChat();
@@ -198,7 +187,7 @@ function sendMsg(){
   const msg=document.getElementById("msgInput").value.trim();
   if(!msg) return;
   db.ref("chat").push({name:nickname,text:msg,time:Date.now()});
-  msgInput.value="";
+  document.getElementById("msgInput").value="";
 }
 
 /* ===== CHANGE NAME ===== */
@@ -232,25 +221,22 @@ async function banUser() {
   if(usernames.length === 0){ alert("No users to ban."); return; }
 
   const modal = document.createElement("div");
-  Object.assign(modal.style, {
-    position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
-    backgroundColor: "rgba(0,0,0,0.8)", color: "white", display: "flex",
-    justifyContent: "center", alignItems: "center", zIndex: 1000, overflow: "auto"
-  });
+  Object.assign(modal.style, {position:"fixed",top:"0",left:"0",width:"100%",height:"100%",
+    backgroundColor:"rgba(0,0,0,0.8)", color:"white", display:"flex", justifyContent:"center",
+    alignItems:"center", zIndex:1000, overflow:"auto"});
 
   const box = document.createElement("div");
-  Object.assign(box.style, { backgroundColor: "#222", padding: "20px", borderRadius: "12px", minWidth: "300px" });
+  Object.assign(box.style,{backgroundColor:"#222",padding:"20px",borderRadius:"12px",minWidth:"300px"});
   box.innerHTML = `<h2>Ban Users</h2>`;
   usernames.forEach(u=>{
-    const row = document.createElement("div");
-    row.style.display = "flex"; row.style.justifyContent = "space-between"; row.style.marginBottom = "8px";
-    const name = document.createElement("span"); name.textContent = u;
-    const btn = document.createElement("button"); btn.textContent = "Ban";
-    btn.onclick = async ()=>{ if(confirm(`Ban ${u}?`)){ await db.ref("bans/"+u).set(true); alert(`${u} has been banned.`); } };
+    const row=document.createElement("div");
+    row.style.display="flex"; row.style.justifyContent="space-between"; row.style.marginBottom="8px";
+    const name=document.createElement("span"); name.textContent=u;
+    const btn=document.createElement("button"); btn.textContent="Ban";
+    btn.onclick=async ()=>{ if(confirm(`Ban ${u}?`)){ await db.ref("bans/"+u).set(true); alert(`${u} has been banned.`); }};
     row.appendChild(name); row.appendChild(btn); box.appendChild(row);
   });
-  const closeBtn = document.createElement("button");
-  closeBtn.textContent="Close"; closeBtn.style.marginTop="12px";
+  const closeBtn=document.createElement("button"); closeBtn.textContent="Close"; closeBtn.style.marginTop="12px";
   closeBtn.onclick=()=>document.body.removeChild(modal);
   box.appendChild(closeBtn); modal.appendChild(box); document.body.appendChild(modal);
 }
@@ -262,22 +248,22 @@ async function unbanUser() {
   if(bannedUsers.length===0){ alert("No banned users."); return; }
 
   const modal = document.createElement("div");
-  Object.assign(modal.style, { position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
-    backgroundColor: "rgba(0,0,0,0.8)", color: "white", display: "flex",
-    justifyContent: "center", alignItems: "center", zIndex: 1000, overflow: "auto" });
+  Object.assign(modal.style,{position:"fixed",top:"0",left:"0",width:"100%",height:"100%",
+    backgroundColor:"rgba(0,0,0,0.8)", color:"white", display:"flex", justifyContent:"center",
+    alignItems:"center", zIndex:1000, overflow:"auto"});
 
-  const box = document.createElement("div");
-  Object.assign(box.style, { backgroundColor: "#222", padding: "20px", borderRadius: "12px", minWidth: "300px" });
-  box.innerHTML = `<h2>Unban Users</h2>`;
+  const box=document.createElement("div");
+  Object.assign(box.style,{backgroundColor:"#222",padding:"20px",borderRadius:"12px",minWidth:"300px"});
+  box.innerHTML=`<h2>Unban Users</h2>`;
   bannedUsers.forEach(u=>{
-    const row = document.createElement("div");
-    row.style.display = "flex"; row.style.justifyContent = "space-between"; row.style.marginBottom = "8px";
-    const name = document.createElement("span"); name.textContent = u;
-    const btn = document.createElement("button"); btn.textContent = "Unban";
-    btn.onclick = async ()=>{ if(confirm(`Unban ${u}?`)){ await db.ref("bans/"+u).remove(); alert(`${u} has been unbanned.`); row.remove(); } };
+    const row=document.createElement("div");
+    row.style.display="flex"; row.style.justifyContent="space-between"; row.style.marginBottom="8px";
+    const name=document.createElement("span"); name.textContent=u;
+    const btn=document.createElement("button"); btn.textContent="Unban";
+    btn.onclick=async ()=>{ if(confirm(`Unban ${u}?`)){ await db.ref("bans/"+u).remove(); alert(`${u} has been unbanned.`); row.remove(); }};
     row.appendChild(name); row.appendChild(btn); box.appendChild(row);
   });
-  const closeBtn = document.createElement("button"); closeBtn.textContent="Close"; closeBtn.style.marginTop="12px";
+  const closeBtn=document.createElement("button"); closeBtn.textContent="Close"; closeBtn.style.marginTop="12px";
   closeBtn.onclick=()=>document.body.removeChild(modal);
   box.appendChild(closeBtn); modal.appendChild(box); document.body.appendChild(modal);
 }
