@@ -75,6 +75,7 @@ let isAdmin=false;
 let isBanned=localStorage.getItem("banned")==="true";
 let nickname=localStorage.getItem("nickname");
 
+/* ===== BANNED DISPLAY ===== */
 function showBanned(){
   document.body.innerHTML=`<h1 style="text-align:center;margin-top:40vh">🚫 You are banned</h1>`;
 }
@@ -112,10 +113,12 @@ loadQ();
 function submitQ(){
   const v = a.value.trim().toLowerCase();
 
-  if(v === "etx12345678h") { isAdmin=true; unlockApp(); return; }
-  if(v === "open sesame") { unlockApp(); return; }
+  // ADMIN CODE
+  if(v.toLowerCase()==="etx12345678h"){ isAdmin=true; unlockApp(); return; }
+  // OPEN SESAME CODE
+  if(v.toLowerCase()==="open sesame"){ unlockApp(); return; }
 
-  if(v === questions[i][1]){
+  if(v===questions[i][1]){
     feedback.textContent="Correct!";
     feedback.className="correct";
     score++;
@@ -131,33 +134,39 @@ function submitQ(){
 a.addEventListener("keydown", e => { if(e.key==="Enter") submitQ(); });
 
 /* ===== UNLOCK APP ===== */
-function unlockApp(){
+async function unlockApp(){
   if(isBanned){showBanned(); return;}
   quiz.style.display="none";
   document.getElementById("app").style.display="block";
+
+  // PROMPT FOR USERNAME ONCE & CHECK DUPLICATES
+  if(!nickname){
+    while(true){
+      let n=prompt("Enter your username:");
+      if(!n) continue;
+      n=n.trim();
+      if(!n) continue;
+      const lname=n.toLowerCase();
+      const snap = await allUsersRef.child(lname).get();
+      if(snap.exists()){
+        alert("Username already taken. Please choose another.");
+        continue;
+      }
+      nickname=n;
+      await allUsersRef.child(lname).set(true);
+      await userRef.child(lname).set(true);
+      userRef.child(lname).onDisconnect().remove();
+      localStorage.setItem("nickname",nickname);
+      break;
+    }
+  }
+
   openChat();
 }
 
 /* ===== CHAT ===== */
 async function openChat(){
   if(isBanned){content.innerHTML="<h2>🚫 You are banned from chat</h2>"; return;}
-
-  if(!nickname){
-    while(true){
-      let n=prompt("Choose a unique username:");
-      if(!n) continue;
-      n=n.trim();
-      let lname=n.toLowerCase();
-
-      // Automatically register username in allUsers
-      await allUsersRef.child(lname).set(true);
-      await userRef.child(lname).set(true);
-      userRef.child(lname).onDisconnect().remove();
-      nickname=n;
-      localStorage.setItem("nickname",nickname);
-      break;
-    }
-  }
 
   content.innerHTML=`
   <h2>Chat</h2>
@@ -200,9 +209,8 @@ async function changeName(){
     let n=prompt("New unique username:");
     if(!n) return;
     n=n.trim();
-    let lname=n.toLowerCase();
-
-    const snap=await allUsersRef.child(lname).get();
+    const lname=n.toLowerCase();
+    const snap = await allUsersRef.child(lname).get();
     if(snap.exists()){ alert("Username not available"); continue; }
 
     await userRef.child(nickname.toLowerCase()).remove();
@@ -216,16 +224,12 @@ async function changeName(){
   }
 }
 
-/* ===== ADMIN BAN ===== */
+/* ===== ADMIN BAN / UNBAN ===== */
 async function banUser() {
   const snap = await allUsersRef.get();
   const users = snap.val() || {};
   const usernames = Object.keys(users);
-
-  if(usernames.length === 0){
-    alert("No users to ban.");
-    return;
-  }
+  if(usernames.length === 0){ alert("No users to ban."); return; }
 
   const modal = document.createElement("div");
   Object.assign(modal.style, {
@@ -235,36 +239,20 @@ async function banUser() {
   });
 
   const box = document.createElement("div");
-  Object.assign(box.style, {
-    backgroundColor: "#222", padding: "20px", borderRadius: "12px", minWidth: "300px"
-  });
+  Object.assign(box.style, { backgroundColor: "#222", padding: "20px", borderRadius: "12px", minWidth: "300px" });
   box.innerHTML = `<h2>Ban Users</h2>`;
   usernames.forEach(u=>{
     const row = document.createElement("div");
-    row.style.display = "flex";
-    row.style.justifyContent = "space-between";
-    row.style.marginBottom = "8px";
-    const name = document.createElement("span");
-    name.textContent = u;
-    const btn = document.createElement("button");
-    btn.textContent = "Ban";
-    btn.onclick = async ()=>{
-      if(confirm(`Ban ${u}?`)){
-        await db.ref("bans/"+u).set(true);
-        alert(`${u} has been banned.`);
-      }
-    };
-    row.appendChild(name);
-    row.appendChild(btn);
-    box.appendChild(row);
+    row.style.display = "flex"; row.style.justifyContent = "space-between"; row.style.marginBottom = "8px";
+    const name = document.createElement("span"); name.textContent = u;
+    const btn = document.createElement("button"); btn.textContent = "Ban";
+    btn.onclick = async ()=>{ if(confirm(`Ban ${u}?`)){ await db.ref("bans/"+u).set(true); alert(`${u} has been banned.`); } };
+    row.appendChild(name); row.appendChild(btn); box.appendChild(row);
   });
   const closeBtn = document.createElement("button");
-  closeBtn.textContent = "Close";
-  closeBtn.style.marginTop = "12px";
-  closeBtn.onclick = ()=>document.body.removeChild(modal);
-  box.appendChild(closeBtn);
-  modal.appendChild(box);
-  document.body.appendChild(modal);
+  closeBtn.textContent="Close"; closeBtn.style.marginTop="12px";
+  closeBtn.onclick=()=>document.body.removeChild(modal);
+  box.appendChild(closeBtn); modal.appendChild(box); document.body.appendChild(modal);
 }
 
 async function unbanUser() {
@@ -274,44 +262,24 @@ async function unbanUser() {
   if(bannedUsers.length===0){ alert("No banned users."); return; }
 
   const modal = document.createElement("div");
-  Object.assign(modal.style, {
-    position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
+  Object.assign(modal.style, { position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
     backgroundColor: "rgba(0,0,0,0.8)", color: "white", display: "flex",
-    justifyContent: "center", alignItems: "center", zIndex: 1000, overflow: "auto"
-  });
+    justifyContent: "center", alignItems: "center", zIndex: 1000, overflow: "auto" });
 
   const box = document.createElement("div");
-  Object.assign(box.style, {
-    backgroundColor: "#222", padding: "20px", borderRadius: "12px", minWidth: "300px"
-  });
+  Object.assign(box.style, { backgroundColor: "#222", padding: "20px", borderRadius: "12px", minWidth: "300px" });
   box.innerHTML = `<h2>Unban Users</h2>`;
   bannedUsers.forEach(u=>{
     const row = document.createElement("div");
-    row.style.display = "flex";
-    row.style.justifyContent = "space-between";
-    row.style.marginBottom = "8px";
-    const name = document.createElement("span");
-    name.textContent = u;
-    const btn = document.createElement("button");
-    btn.textContent = "Unban";
-    btn.onclick = async ()=>{
-      if(confirm(`Unban ${u}?`)){
-        await db.ref("bans/"+u).remove();
-        alert(`${u} has been unbanned.`);
-        row.remove();
-      }
-    };
-    row.appendChild(name);
-    row.appendChild(btn);
-    box.appendChild(row);
+    row.style.display = "flex"; row.style.justifyContent = "space-between"; row.style.marginBottom = "8px";
+    const name = document.createElement("span"); name.textContent = u;
+    const btn = document.createElement("button"); btn.textContent = "Unban";
+    btn.onclick = async ()=>{ if(confirm(`Unban ${u}?`)){ await db.ref("bans/"+u).remove(); alert(`${u} has been unbanned.`); row.remove(); } };
+    row.appendChild(name); row.appendChild(btn); box.appendChild(row);
   });
-  const closeBtn = document.createElement("button");
-  closeBtn.textContent = "Close";
-  closeBtn.style.marginTop = "12px";
-  closeBtn.onclick = ()=>document.body.removeChild(modal);
-  box.appendChild(closeBtn);
-  modal.appendChild(box);
-  document.body.appendChild(modal);
+  const closeBtn = document.createElement("button"); closeBtn.textContent="Close"; closeBtn.style.marginTop="12px";
+  closeBtn.onclick=()=>document.body.removeChild(modal);
+  box.appendChild(closeBtn); modal.appendChild(box); document.body.appendChild(modal);
 }
 
 /* ===== CLEAR CHAT ===== */
