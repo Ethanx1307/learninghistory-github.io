@@ -99,16 +99,12 @@ function unlockApp(){
   openChat();
 }
 
-// ===== DOCUMENT (UNCHANGED) =====
+// ===== DOCUMENT =====
 function openDoc(){
   content.innerHTML=`<h2>Document</h2><button id="editBtn">Edit</button><div id="editor"></div>`;
   const ed=document.getElementById("editor");
   ed.contentEditable=false;
-
-  db.ref("doc").on("value",s=>{
-    if(document.activeElement!==ed) ed.innerHTML=s.val()||"";
-  });
-
+  db.ref("doc").on("value",s=>{ if(document.activeElement!==ed) ed.innerHTML=s.val()||""; });
   editBtn.onclick=()=>{
     if(prompt("Enter edit code")!=="1219") return alert("Wrong code");
     ed.contentEditable=true;
@@ -116,7 +112,7 @@ function openDoc(){
   };
 }
 
-// ===== CHAT + ADMIN BAN SYSTEM =====
+// ===== CHAT + ADMIN BAN + CLEAR + NICKNAME =====
 let nickname=localStorage.getItem("nickname");
 let banned=false;
 
@@ -134,12 +130,14 @@ function openChat(){
     banned=!!s.val();
     if(banned){
       document.getElementById("msgInput")?.setAttribute("disabled",true);
-      document.getElementById("banMsg").style.display="block";
+      document.getElementById("banMsg")?.style.display="block";
     }
   });
 
   content.innerHTML=`
     <h2>Chat</h2>
+    <button onclick="changeName()">Change Nickname</button>
+    <button onclick="clearChat()">Clear Chat</button>
     <div id="banMsg" class="banned" style="display:none">You are banned from chatting.</div>
     <div id="chatBox"></div>
     <input id="msgInput" placeholder="Message">
@@ -149,11 +147,11 @@ function openChat(){
 
   const chatBox=document.getElementById("chatBox");
 
-  db.ref("chat").limitToLast(100).on("child_added",s=>{
-    const m=s.val();
+  db.ref("chat").limitToLast(100).on("child_added",snap=>{
+    const m=snap.val();
     const d=document.createElement("div");
     d.className="msg";
-    d.innerHTML=`<span class="name">${m.name}</span>: ${m.text}`;
+    d.innerHTML=`<span class="name">${m.name}</span> <span class="time">${formatTime(m.time)}</span>: ${m.text}`;
     chatBox.appendChild(d);
     chatBox.scrollTop=chatBox.scrollHeight;
   });
@@ -163,9 +161,7 @@ function openChat(){
       let html="";
       snap.forEach(u=>{
         const name=u.key;
-        html+=`${name}
-          <button onclick="banUser('${name}')">Ban</button>
-          <button onclick="unbanUser('${name}')">Unban</button><br>`;
+        html+=`${name} <button onclick="banUser('${name}')">Ban</button> <button onclick="unbanUser('${name}')">Unban</button><br>`;
       });
       document.getElementById("userList").innerHTML=html;
     });
@@ -183,7 +179,23 @@ function sendMsg(){
 function banUser(n){db.ref("bans/"+n).set(true);}
 function unbanUser(n){db.ref("bans/"+n).remove();}
 
-// ===== YT / GAMES / PROXY (UNCHANGED) =====
+// ===== CLEAR + CHANGE NICKNAME =====
+function clearChat(){
+  if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong code");
+  db.ref("chat").remove();
+  openChat();
+}
+
+function changeName(){
+  const n=prompt("Enter new nickname:");
+  if(n){
+    nickname=n;
+    localStorage.setItem("nickname",n);
+    openChat();
+  }
+}
+
+// ===== YT / GAMES / PROXY =====
 function openYT(){
   content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame"></iframe>`;
 }
@@ -195,6 +207,18 @@ function loadYT(){
 }
 function openGames(){window.open("game.html","_blank");}
 function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
+
+// ===== FORMAT TIME 12HR WITH TODAY / YESTERDAY / DATE =====
+function formatTime(ts){
+  const d=new Date(ts),t=new Date();
+  const y=new Date(); y.setDate(t.getDate()-1);
+
+  let hours=d.getHours(),minutes=d.getMinutes().toString().padStart(2,"0");
+  const ampm=hours>=12?"PM":"AM";
+  hours=hours%12||12;
+  let dayStr=d.toDateString()===t.toDateString()?"Today":d.toDateString()===y.toDateString()?"Yesterday":d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear();
+  return `${dayStr} ${hours}:${minutes}${ampm}`;
+}
 </script>
 </body>
 </html>
