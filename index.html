@@ -17,6 +17,7 @@ body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
 .content{margin-left:240px;padding:40px;min-height:100vh}
 #chatBox{max-height:360px;overflow-y:auto;background:#313338;padding:10px;border-radius:6px;margin-bottom:8px}
 .msg{margin-bottom:10px}
+.time{font-size:11px;color:#aaa}
 .name{font-weight:bold;color:#57a4ff}
 input,button{padding:8px;margin-top:5px;border-radius:5px;border:none}
 input{width:70%}
@@ -129,6 +130,8 @@ function submitQ(){
   if(i<questions.length) setTimeout(loadQ,400);
   else feedback.textContent=`Finished! Score: ${score}/${questions.length}`;
 }
+// Enter submits quiz
+a.addEventListener("keydown", e => { if(e.key==="Enter") submitQ(); });
 
 /* ===== UNLOCK APP ===== */
 function unlockApp(){
@@ -146,23 +149,24 @@ async function openChat(){
     while(true){
       let n=prompt("Choose a unique username:");
       if(!n) continue;
-      n=n.trim().toLowerCase();
+      n=n.trim();
+      let lname=n.toLowerCase();
 
-      const snap=await userRef.child(n).get();
-      if(snap.exists()) alert("Username already taken");
-      else{
-        await userRef.child(n).set(true);
-        userRef.child(n).onDisconnect().remove();
-        nickname=n;
-        localStorage.setItem("nickname",n);
-        break;
-      }
+      const snap=await userRef.child(lname).get();
+      if(snap.exists()){ alert("Username not available"); continue; }
+
+      await userRef.child(lname).set(true);
+      userRef.child(lname).onDisconnect().remove();
+      nickname=n;
+      localStorage.setItem("nickname",nickname);
+      break;
     }
   }
 
   content.innerHTML=`
   <h2>Chat</h2>
   <button onclick="changeName()">Change Username</button>
+  <button onclick="clearChat()">Clear Chat</button>
   ${isAdmin?`<button onclick="banUser()">Ban</button><button onclick="unbanUser()">Unban</button>`:""}
   <div id="chatBox"></div>
   <input id="msgInput" placeholder="Message">
@@ -170,22 +174,26 @@ async function openChat(){
   `;
 
   const chatBox=document.getElementById("chatBox");
+  const msgInput=document.getElementById("msgInput");
   chatBox.innerHTML="";
   db.ref("chat").off();
   db.ref("chat").on("child_added",snap=>{
     const m=snap.val();
     const div=document.createElement("div");
     div.className="msg";
-    div.innerHTML=`<span class="name">${m.name}</span>: ${m.text}`;
+    div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}`;
     chatBox.appendChild(div);
     chatBox.scrollTop=chatBox.scrollHeight;
   });
+
+  // Enter key sends chat
+  msgInput.addEventListener("keydown", e => { if(e.key==="Enter") sendMsg(); });
 }
 
 function sendMsg(){
   const msg=document.getElementById("msgInput").value.trim();
   if(!msg) return;
-  db.ref("chat").push({name:nickname,text:msg});
+  db.ref("chat").push({name:nickname,text:msg,time:Date.now()});
   msgInput.value="";
 }
 
@@ -196,29 +204,66 @@ async function changeName(){
   while(true){
     let n=prompt("New unique username:");
     if(!n) return;
-    n=n.trim().toLowerCase();
-    const snap=await userRef.child(n).get();
-    if(snap.exists()) alert("Username already taken");
-    else{
-      await userRef.child(nickname).remove();
-      await userRef.child(n).set(true);
-      userRef.child(n).onDisconnect().remove();
-      nickname=n;
-      localStorage.setItem("nickname",n);
-      openChat();
-      return;
-    }
+    n=n.trim();
+    let lname=n.toLowerCase();
+    const snap=await userRef.child(lname).get();
+    if(snap.exists()){ alert("Username not available"); continue; }
+
+    await userRef.child(nickname.toLowerCase()).remove();
+    await userRef.child(lname).set(true);
+    userRef.child(lname).onDisconnect().remove();
+    nickname=n;
+    localStorage.setItem("nickname",nickname);
+    openChat();
+    return;
   }
 }
 
 /* ===== ADMIN BAN ===== */
-function banUser(){
-  const u=prompt("Username to ban:");
-  if(u) db.ref("bans/"+u.toLowerCase()).set(true);
+async function banUser(){
+  let u=prompt("Username to ban:");
+  if(!u) return;
+  let lname=u.trim().toLowerCase();
+  const snap=await userRef.child(lname).get();
+  if(!snap.exists()){
+    alert("Username not recognized");
+    return;
+  }
+  if(confirm(`Are you sure you want to ban ${u}?`)){
+    db.ref("bans/"+lname).set(true);
+  }
 }
-function unbanUser(){
-  const u=prompt("Username to unban:");
-  if(u) db.ref("bans/"+u.toLowerCase()).remove();
+async function unbanUser(){
+  let u=prompt("Username to unban:");
+  if(!u) return;
+  let lname=u.trim().toLowerCase();
+  const snap=await db.ref("bans/"+lname).get();
+  if(!snap.exists()){
+    alert("Username not recognized");
+    return;
+  }
+  if(confirm(`Are you sure you want to unban ${u}?`)){
+    db.ref("bans/"+lname).remove();
+  }
+}
+
+/* ===== CLEAR CHAT ===== */
+function clearChat(){
+  if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong");
+  db.ref("chat").remove();
+  openChat();
+}
+
+/* ===== TIME FORMAT ===== */
+function formatTime(ts){
+  if(!ts) return "";
+  const d=new Date(ts), now=new Date(), yesterday=new Date();
+  yesterday.setDate(now.getDate()-1);
+  let h=d.getHours(), m=d.getMinutes().toString().padStart(2,"0"), ap=h>=12?"pm":"am";
+  h=h%12||12;
+  if(d.toDateString()===now.toDateString()) return `Today ${h}:${m}${ap}`;
+  if(d.toDateString()===yesterday.toDateString()) return `Yesterday ${h}:${m}${ap}`;
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
 }
 
 /* ===== OTHER PAGES ===== */
@@ -237,7 +282,7 @@ function loadYT(){
   ytFrame.src="https://www.youtube.com/embed/"+id;
 }
 function openGames(){window.open("game.html","_blank");}
-function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
+function openProxy(){window.open("https://reunion.remiosenifoundation.org/","_blank");}
 </script>
 </body>
 </html>
