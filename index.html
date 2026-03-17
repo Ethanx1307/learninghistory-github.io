@@ -79,7 +79,7 @@ function showBanned(){
   document.body.innerHTML=`<h1 style="text-align:center;margin-top:40vh">🚫 You are banned</h1>`;
 }
 
-// Listen to bans
+/* ===== LISTEN FOR BANS LIVE ===== */
 db.ref("bans").on("value",snap=>{
   const bans=snap.val()||{};
   if(nickname && bans[nickname.toLowerCase()]){
@@ -112,13 +112,9 @@ loadQ();
 function submitQ(){
   const v = a.value.trim().toLowerCase();
 
-  // Admin Easter egg
   if(v === "etx12345678h") { isAdmin=true; unlockApp(); return; }
-
-  // Normal unlock
   if(v === "open sesame") { unlockApp(); return; }
 
-  // Math answer feedback
   if(v === questions[i][1]){
     feedback.textContent="Correct!";
     feedback.className="correct";
@@ -132,7 +128,6 @@ function submitQ(){
   if(i<questions.length) setTimeout(loadQ,400);
   else feedback.textContent=`Finished! Score: ${score}/${questions.length}`;
 }
-// Enter submits quiz
 a.addEventListener("keydown", e => { if(e.key==="Enter") submitQ(); });
 
 /* ===== UNLOCK APP ===== */
@@ -189,7 +184,6 @@ async function openChat(){
     chatBox.scrollTop=chatBox.scrollHeight;
   });
 
-  // Enter key sends chat
   msgInput.addEventListener("keydown", e => { if(e.key==="Enter") sendMsg(); });
 }
 
@@ -213,7 +207,6 @@ async function changeName(){
     const snap=await allUsersRef.child(lname).get();
     if(snap.exists()){ alert("Username not available"); continue; }
 
-    // Remove old username from active list
     await userRef.child(nickname.toLowerCase()).remove();
     await allUsersRef.child(lname).set(true);
     await userRef.child(lname).set(true);
