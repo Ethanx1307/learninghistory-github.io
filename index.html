@@ -68,13 +68,10 @@ const db=firebase.database();
 const userRef=db.ref("usernames");
 const allUsersRef=db.ref("allUsers");
 
-/* ===== ADMIN FLAG ===== */
+/* ===== FLAGS ===== */
 let isAdmin=false;
 let isBanned=false;
-let nickname=null;
-
-/* ===== RESET LOCAL DATA ===== */
-localStorage.clear(); // Fresh start for everyone
+let nickname=localStorage.getItem("nickname");
 
 /* ===== BANNED DISPLAY ===== */
 function showBanned(){
@@ -111,7 +108,7 @@ loadQ();
 function submitQ(){
   const v=a.value.trim().toLowerCase();
   if(v==="etx12345678h"){ isAdmin=true; unlockApp(); return; }
-  if(v.replace(/\s+/g,'')==="opensesame"){ unlockApp(); return; } // any caps/spaces
+  if(v.replace(/\s+/g,'')==="opensesame"){ unlockApp(); return; }
 
   if(v===questions[i][1]){
     feedback.textContent="Correct!"; feedback.className="correct"; score++;
@@ -124,14 +121,13 @@ function submitQ(){
 }
 a.addEventListener("keydown", e => { if(e.key==="Enter") submitQ(); });
 
-/* ===== UNLOCK APP & PROMPT USERNAME ===== */
+/* ===== UNLOCK APP & USERNAME PROMPT ===== */
 async function unlockApp(){
   if(isBanned){showBanned(); return;}
   quiz.style.display="none";
   document.getElementById("app").style.display="block";
 
-  nickname=null;
-
+  // only prompt if no nickname yet
   while(!nickname){
     let n=prompt("Enter a unique username:");
     if(!n) continue;
@@ -139,11 +135,9 @@ async function unlockApp(){
     const lname=n.toLowerCase();
     const snap = await allUsersRef.child(lname).get();
     if(snap.exists()){
-      alert("Username already taken. Please choose another.");
+      alert("Username already taken. Choose another.");
       continue;
     }
-
-    // Check if banned
     const banSnap = await db.ref("bans/"+lname).get();
     if(banSnap.exists()){ alert("This username is banned!"); continue; }
 
@@ -161,7 +155,6 @@ async function unlockApp(){
 /* ===== CHAT ===== */
 async function openChat(){
   if(isBanned){content.innerHTML="<h2>🚫 You are banned from chat</h2>"; return;}
-
   content.innerHTML=`
   <h2>Chat</h2>
   <button onclick="changeName()">Change Username</button>
@@ -171,7 +164,6 @@ async function openChat(){
   <input id="msgInput" placeholder="Message">
   <button onclick="sendMsg()">Send</button>
   `;
-
   const chatBox=document.getElementById("chatBox");
   const msgInput=document.getElementById("msgInput");
   chatBox.innerHTML="";
@@ -184,7 +176,6 @@ async function openChat(){
     chatBox.appendChild(div);
     chatBox.scrollTop=chatBox.scrollHeight;
   });
-
   msgInput.addEventListener("keydown", e => { if(e.key==="Enter") sendMsg(); });
 }
 
@@ -198,7 +189,6 @@ function sendMsg(){
 /* ===== CHANGE NAME ===== */
 async function changeName(){
   if(prompt("Enter code")!=="4293") return alert("Wrong code");
-
   while(true){
     let n=prompt("New unique username:");
     if(!n) return;
@@ -218,95 +208,20 @@ async function changeName(){
   }
 }
 
-/* ===== ADMIN BAN / UNBAN ===== */
-async function banUser() {
-  const snap = await allUsersRef.get();
-  const users = snap.val() || {};
-  const usernames = Object.keys(users);
-  if(usernames.length === 0){ alert("No users to ban."); return; }
-
-  const modal = document.createElement("div");
-  Object.assign(modal.style, {position:"fixed",top:"0",left:"0",width:"100%",height:"100%",
-    backgroundColor:"rgba(0,0,0,0.8)", color:"white", display:"flex", justifyContent:"center",
-    alignItems:"center", zIndex:1000, overflow:"auto"});
-
-  const box = document.createElement("div");
-  Object.assign(box.style,{backgroundColor:"#222",padding:"20px",borderRadius:"12px",minWidth:"300px"});
-  box.innerHTML = `<h2>Ban Users</h2>`;
-  usernames.forEach(u=>{
-    const row=document.createElement("div");
-    row.style.display="flex"; row.style.justifyContent="space-between"; row.style.marginBottom="8px";
-    const name=document.createElement("span"); name.textContent=u;
-    const btn=document.createElement("button"); btn.textContent="Ban";
-    btn.onclick=async ()=>{ if(confirm(`Ban ${u}?`)){ await db.ref("bans/"+u).set(true); alert(`${u} has been banned.`); }};
-    row.appendChild(name); row.appendChild(btn); box.appendChild(row);
-  });
-  const closeBtn=document.createElement("button"); closeBtn.textContent="Close"; closeBtn.style.marginTop="12px";
-  closeBtn.onclick=()=>document.body.removeChild(modal);
-  box.appendChild(closeBtn); modal.appendChild(box); document.body.appendChild(modal);
-}
-
-async function unbanUser() {
-  const snap = await db.ref("bans").get();
-  const bans = snap.val() || {};
-  const bannedUsers = Object.keys(bans);
-  if(bannedUsers.length===0){ alert("No banned users."); return; }
-
-  const modal = document.createElement("div");
-  Object.assign(modal.style,{position:"fixed",top:"0",left:"0",width:"100%",height:"100%",
-    backgroundColor:"rgba(0,0,0,0.8)", color:"white", display:"flex", justifyContent:"center",
-    alignItems:"center", zIndex:1000, overflow:"auto"});
-
-  const box=document.createElement("div");
-  Object.assign(box.style,{backgroundColor:"#222",padding:"20px",borderRadius:"12px",minWidth:"300px"});
-  box.innerHTML=`<h2>Unban Users</h2>`;
-  bannedUsers.forEach(u=>{
-    const row=document.createElement("div");
-    row.style.display="flex"; row.style.justifyContent="space-between"; row.style.marginBottom="8px";
-    const name=document.createElement("span"); name.textContent=u;
-    const btn=document.createElement("button"); btn.textContent="Unban";
-    btn.onclick=async ()=>{ if(confirm(`Unban ${u}?`)){ await db.ref("bans/"+u).remove(); alert(`${u} has been unbanned.`); row.remove(); }};
-    row.appendChild(name); row.appendChild(btn); box.appendChild(row);
-  });
-  const closeBtn=document.createElement("button"); closeBtn.textContent="Close"; closeBtn.style.marginTop="12px";
-  closeBtn.onclick=()=>document.body.removeChild(modal);
-  box.appendChild(closeBtn); modal.appendChild(box); document.body.appendChild(modal);
-}
+/* ===== BAN / UNBAN ===== */
+async function banUser(){ /* same as before */ const snap=await allUsersRef.get(); const users=snap.val()||{}; const usernames=Object.keys(users); if(usernames.length===0){alert("No users to ban."); return;} const modal=document.createElement("div"); Object.assign(modal.style,{position:"fixed",top:"0",left:"0",width:"100%",height:"100%",backgroundColor:"rgba(0,0,0,0.8)",color:"white",display:"flex",justifyContent:"center",alignItems:"center",zIndex:1000,overflow:"auto"}); const box=document.createElement("div"); Object.assign(box.style,{backgroundColor:"#222",padding:"20px",borderRadius:"12px",minWidth:"300px"}); box.innerHTML=`<h2>Ban Users</h2>`; usernames.forEach(u=>{ const row=document.createElement("div"); row.style.display="flex"; row.style.justifyContent="space-between"; row.style.marginBottom="8px"; const name=document.createElement("span"); name.textContent=u; const btn=document.createElement("button"); btn.textContent="Ban"; btn.onclick=async ()=>{if(confirm(`Ban ${u}?`)){await db.ref("bans/"+u).set(true);alert(`${u} has been banned.`);}}; row.appendChild(name); row.appendChild(btn); box.appendChild(row);}); const closeBtn=document.createElement("button"); closeBtn.textContent="Close"; closeBtn.style.marginTop="12px"; closeBtn.onclick=()=>document.body.removeChild(modal); box.appendChild(closeBtn); modal.appendChild(box); document.body.appendChild(modal);}
+async function unbanUser(){ /* same as before */ const snap=await db.ref("bans").get(); const bans=snap.val()||{}; const bannedUsers=Object.keys(bans); if(bannedUsers.length===0){alert("No banned users.");return;} const modal=document.createElement("div"); Object.assign(modal.style,{position:"fixed",top:"0",left:"0",width:"100%",height:"100%",backgroundColor:"rgba(0,0,0,0.8)",color:"white",display:"flex",justifyContent:"center",alignItems:"center",zIndex:1000,overflow:"auto"}); const box=document.createElement("div"); Object.assign(box.style,{backgroundColor:"#222",padding:"20px",borderRadius:"12px",minWidth:"300px"}); box.innerHTML=`<h2>Unban Users</h2>`; bannedUsers.forEach(u=>{ const row=document.createElement("div"); row.style.display="flex"; row.style.justifyContent="space-between"; row.style.marginBottom="8px"; const name=document.createElement("span"); name.textContent=u; const btn=document.createElement("button"); btn.textContent="Unban"; btn.onclick=async ()=>{if(confirm(`Unban ${u}?`)){await db.ref("bans/"+u).remove();alert(`${u} has been unbanned.`);row.remove();}}; row.appendChild(name); row.appendChild(btn); box.appendChild(row);}); const closeBtn=document.createElement("button"); closeBtn.textContent="Close"; closeBtn.style.marginTop="12px"; closeBtn.onclick=()=>document.body.removeChild(modal); box.appendChild(closeBtn); modal.appendChild(box); document.body.appendChild(modal);}
 
 /* ===== CLEAR CHAT ===== */
-function clearChat(){
-  if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong");
-  db.ref("chat").remove();
-  openChat();
-}
+function clearChat(){ if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong"); db.ref("chat").remove(); openChat();}
 
 /* ===== TIME FORMAT ===== */
-function formatTime(ts){
-  if(!ts) return "";
-  const d=new Date(ts), now=new Date(), yesterday=new Date();
-  yesterday.setDate(now.getDate()-1);
-  let h=d.getHours(), m=d.getMinutes().toString().padStart(2,"0"), ap=h>=12?"pm":"am";
-  h=h%12||12;
-  if(d.toDateString()===now.toDateString()) return `Today ${h}:${m}${ap}`;
-  if(d.toDateString()===yesterday.toDateString()) return `Yesterday ${h}:${m}${ap}`;
-  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
-}
+function formatTime(ts){ if(!ts)return""; const d=new Date(ts), now=new Date(), yesterday=new Date(); yesterday.setDate(now.getDate()-1); let h=d.getHours(), m=d.getMinutes().toString().padStart(2,"0"), ap=h>=12?"pm":"am"; h=h%12||12; if(d.toDateString()===now.toDateString()) return`Today ${h}:${m}${ap}`; if(d.toDateString()===yesterday.toDateString()) return`Yesterday ${h}:${m}${ap}`; return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;}
 
 /* ===== OTHER PAGES ===== */
 function openDoc(){content.innerHTML="<h2>Document</h2>";}
-function openYT(){
-  content.innerHTML=`
-  <input id="ytInput" placeholder="YouTube link">
-  <button onclick="loadYT()">Load</button><br><br>
-  <iframe id="ytFrame" width="1920" height="1080" allowfullscreen></iframe>
-  `;
-}
-function loadYT(){
-  let u=ytInput.value,id="";
-  if(u.includes("watch?v=")) id=u.split("watch?v=")[1].split("&")[0];
-  else if(u.includes("youtu.be/")) id=u.split("youtu.be/")[1];
-  ytFrame.src="https://www.youtube.com/embed/"+id;
-}
+function openYT(){content.innerHTML=`<input id="ytInput" placeholder="YouTube link"><button onclick="loadYT()">Load</button><br><br><iframe id="ytFrame" width="1920" height="1080" allowfullscreen></iframe>`;}
+function loadYT(){ let u=ytInput.value,id=""; if(u.includes("watch?v=")) id=u.split("watch?v=")[1].split("&")[0]; else if(u.includes("youtu.be/")) id=u.split("youtu.be/")[1]; ytFrame.src="https://www.youtube.com/embed/"+id;}
 function openGames(){window.open("game.html","_blank");}
 function openProxy(){window.open("https://reunion.remiosenifoundation.org/","_blank");}
 </script>
