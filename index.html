@@ -12,317 +12,120 @@ body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
 .incorrect{color:#f44336}
 #app{display:none}
 .sidebar{width:220px;background:#1e1e2f;padding:20px;position:fixed;top:0;bottom:0}
-.sidebar button{width:100%;margin-bottom:10px;padding:12px;background:#2c2f33;color:white;border:none;border-radius:8px;cursor:pointer}
-.sidebar button:hover{background:#40444b}
-.content{margin-left:240px;padding:40px;min-height:100vh}
-#chatBox{max-height:360px;overflow-y:auto;background:#313338;padding:10px;border-radius:6px;margin-bottom:8px}
+.sidebar button{width:100%;margin-bottom:10px;padding:12px;background:#2c2f33;color:white;border:none;border-radius:8px}
+.content{margin-left:240px;padding:40px}
+#chatBox{max-height:360px;overflow-y:auto;background:#313338;padding:10px;border-radius:6px}
 .msg{margin-bottom:10px}
+.name{color:#57a4ff;font-weight:bold}
 .time{font-size:11px;color:#aaa}
-.name{font-weight:bold;color:#57a4ff}
-input,button{padding:8px;margin-top:5px;border-radius:5px;border:none}
-input{width:70%}
-button{background:#5865f2;color:white;cursor:pointer}
-button:hover{opacity:0.85}
-iframe{border:none;border-radius:12px}
 </style>
 </head>
 <body>
 
-<!-- QUIZ -->
 <section id="quiz">
 <h1>Year 8 Maths Quiz</h1>
 <p id="q"></p>
-<input id="a" placeholder="Type answer here">
+<input id="a">
 <button onclick="submitQ()">Submit</button>
 <div id="feedback"></div>
-<p>Question <span id="n"></span>/50</p>
 </section>
 
-<!-- APP -->
 <section id="app">
 <div class="sidebar">
-<button onclick="openDoc()">📄 Document</button>
 <button onclick="openChat()">💬 Chat</button>
-<button onclick="openYT()">▶️ YouTube</button>
-<button onclick="openGames()">🎮 Games</button>
-<button onclick="openProxy()">🌐 Proxy</button>
 </div>
-<div class="content" id="content">Welcome!</div>
+<div class="content" id="content"></div>
 </section>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
 /* ===== FIREBASE ===== */
-const firebaseConfig={
+firebase.initializeApp({
   apiKey:"AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
-  authDomain:"learning-history-1bfd5.firebaseapp.com",
-  databaseURL:"https://learning-history-1bfd5-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId:"learning-history-1bfd5",
-  storageBucket:"learning-history-1bfd5.appspot.com",
-  messagingSenderId:"231811778288",
-  appId:"1:231811778288:web:d112859a8bc6143fffa435"
-};
-firebase.initializeApp(firebaseConfig);
+  databaseURL:"https://learning-history-1bfd5-default-rtdb.asia-southeast1.firebasedatabase.app"
+});
 const db=firebase.database();
-const userRef=db.ref("usernames");
-const allUsersRef=db.ref("allUsers");
 
-/* ===== FLAGS ===== */
-let isAdmin=false;
-let isBanned=false;
-let nickname=localStorage.getItem("nickname");
-
-/* ===== ONE-TIME FRESH START ===== */
-(async function freshStart(){
-  await allUsersRef.remove();
-  await userRef.remove();
-  localStorage.clear();
-})();
-
-/* ===== BANNED DISPLAY ===== */
-function showBanned(){
-  document.body.innerHTML=`<h1 style="text-align:center;margin-top:40vh">🚫 You are banned</h1>`;
+/* ===== DEVICE ID ===== */
+let deviceId = localStorage.getItem("deviceId");
+if(!deviceId){
+  deviceId="dev_"+Math.random().toString(36).slice(2);
+  localStorage.setItem("deviceId",deviceId);
 }
 
-/* ===== LISTEN FOR BANS LIVE ===== */
-db.ref("bans").on("value",snap=>{
-  const bans=snap.val()||{};
-  if(nickname && bans[nickname.toLowerCase()]){
-    isBanned=true;
-    showBanned();
+/* ===== BAN CHECK ===== */
+db.ref("bannedDevices/"+deviceId).on("value",snap=>{
+  if(snap.exists()){
+    document.body.innerHTML="<h1 style='text-align:center;margin-top:40vh'>🚫 You are banned</h1>";
   }
 });
 
+/* ===== STATE ===== */
+let nickname=null;
+let isAdmin=false;
+
 /* ===== QUIZ ===== */
-let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],
-["15% of 200","30"],["-5+12","7"],["6²÷3","12"]].sort(()=>Math.random()-0.5);
-
-let i=0,score=0;
-const q=document.getElementById("q"),
-      a=document.getElementById("a"),
-      feedback=document.getElementById("feedback"),
-      n=document.getElementById("n");
-
-function loadQ(){
-  q.textContent=questions[i][0];
-  n.textContent=i+1;
-  a.value="";
-  feedback.textContent="";
-}
-loadQ();
-
+const questions=[["7x8","56"]];
+let i=0;
 function submitQ(){
   const v=a.value.trim().toLowerCase();
-  if(v==="etx12345678h"){ isAdmin=true; unlockApp(); return; }
-  if(v.replace(/\s+/g,'')==="opensesame"){ unlockApp(); return; }
-
-  if(v===questions[i][1]){
-    feedback.textContent="Correct!"; feedback.className="correct"; score++;
-  } else{
-    feedback.textContent="Incorrect!"; feedback.className="incorrect";
-  }
-
-  i++; if(i<questions.length) setTimeout(loadQ,400);
-  else feedback.textContent=`Finished! Score: ${score}/${questions.length}`;
+  if(v==="etx12345678h"){isAdmin=true;unlock();return;}
+  if(v.replace(/\s+/g,"")==="opensesame"){unlock();return;}
 }
-a.addEventListener("keydown", e => { if(e.key==="Enter") submitQ(); });
-
-/* ===== UNLOCK APP & USERNAME PROMPT ===== */
-async function unlockApp(){
-  if(isBanned){showBanned(); return;}
+function unlock(){
   quiz.style.display="none";
-  document.getElementById("app").style.display="block";
-
-  while(!nickname){
-    let n=prompt("Enter a unique username:");
-    if(!n) continue;
-    n=n.trim(); if(!n) continue;
-    const lname=n.toLowerCase();
-    const snap = await allUsersRef.child(lname).get();
-    if(snap.exists()){
-      alert("Username already taken. Choose another.");
-      continue;
-    }
-    const banSnap = await db.ref("bans/"+lname).get();
-    if(banSnap.exists()){ alert("This username is banned!"); continue; }
-
-    nickname=n;
-    await allUsersRef.child(lname).set(true);
-    await userRef.child(lname).set(true);
-    userRef.child(lname).onDisconnect().remove();
-    localStorage.setItem("nickname",nickname);
-    break;
-  }
-
+  app.style.display="block";
   openChat();
 }
 
 /* ===== CHAT ===== */
 async function openChat(){
-  if(isBanned){content.innerHTML="<h2>🚫 You are banned from chat</h2>"; return;}
+  if(!nickname){
+    while(true){
+      let n=prompt("Username:");
+      if(!n)continue;
+      nickname=n.trim();
+      await db.ref("users/"+nickname.toLowerCase()).set({
+        device:deviceId
+      });
+      break;
+    }
+  }
+
   content.innerHTML=`
   <h2>Chat</h2>
-  <button onclick="changeName()">Change Username</button>
-  <button onclick="clearChat()">Clear Chat</button>
-  ${isAdmin?`<button onclick="banUser()">Ban</button><button onclick="unbanUser()">Unban</button>`:""}
+  ${isAdmin?`<button onclick="banUser()">Ban</button>`:""}
   <div id="chatBox"></div>
-  <input id="msgInput" placeholder="Message">
-  <button onclick="sendMsg()">Send</button>
+  <input id="msg"><button onclick="send()">Send</button>
   `;
-  const chatBox=document.getElementById("chatBox");
-  const msgInput=document.getElementById("msgInput");
-  chatBox.innerHTML="";
-  db.ref("chat").off();
-  db.ref("chat").on("child_added",snap=>{
-    const m=snap.val();
-    const div=document.createElement("div");
-    div.className="msg";
-    div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}`;
-    chatBox.appendChild(div);
-    chatBox.scrollTop=chatBox.scrollHeight;
+
+  db.ref("chat").on("child_added",s=>{
+    const m=s.val();
+    chatBox.innerHTML+=`<div class="msg"><span class="name">${m.name}</span>: ${m.text}</div>`;
   });
-  msgInput.addEventListener("keydown", e => { if(e.key==="Enter") sendMsg(); });
 }
 
-function sendMsg(){
-  const msg=document.getElementById("msgInput").value.trim();
-  if(!msg) return;
-  db.ref("chat").push({name:nickname,text:msg,time:Date.now()});
-  document.getElementById("msgInput").value="";
+function send(){
+  db.ref("chat").push({name:nickname,text:msg.value});
+  msg.value="";
 }
 
-/* ===== CHANGE NAME ===== */
-async function changeName(){
-  if(prompt("Enter code")!=="4293") return alert("Wrong code");
-  while(true){
-    let n=prompt("New unique username:");
-    if(!n) return;
-    n=n.trim();
-    const lname=n.toLowerCase();
-    const snap = await allUsersRef.child(lname).get();
-    if(snap.exists()){ alert("Username not available"); continue; }
+/* ===== BAN USER (DEVICE BAN) ===== */
+async function banUser(){
+  const snap=await db.ref("users").get();
+  const users=snap.val()||{};
+  const names=Object.keys(users);
 
-    await userRef.child(nickname.toLowerCase()).remove();
-    await allUsersRef.child(lname).set(true);
-    await userRef.child(lname).set(true);
-    userRef.child(lname).onDisconnect().remove();
-    nickname=n;
-    localStorage.setItem("nickname",nickname);
-    openChat();
-    return;
-  }
+  let u=prompt("Ban which user?\n"+names.join(", "));
+  if(!u)return;
+
+  const user=users[u.toLowerCase()];
+  if(!user)return alert("Not found");
+
+  await db.ref("bannedDevices/"+user.device).set(true);
+  alert(u+" banned (device)");
 }
-
-/* ===== BAN / UNBAN ===== */
-async function banUser() {
-  const snap = await allUsersRef.get();
-  const users = snap.val() || {};
-  const usernames = Object.keys(users);
-
-  if(usernames.length === 0){
-    alert("No users to ban.");
-    return;
-  }
-
-  const modal = document.createElement("div");
-  Object.assign(modal.style, {
-    position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
-    backgroundColor: "rgba(0,0,0,0.8)", color: "white", display: "flex",
-    justifyContent: "center", alignItems: "center", zIndex: 1000, overflow: "auto"
-  });
-
-  const box = document.createElement("div");
-  Object.assign(box.style, { backgroundColor: "#222", padding: "20px", borderRadius: "12px", minWidth: "300px" });
-  box.innerHTML = `<h2>Ban Users</h2>`;
-  usernames.forEach(u=>{
-    const row = document.createElement("div");
-    row.style.display = "flex"; row.style.justifyContent = "space-between"; row.style.marginBottom = "8px";
-    const name = document.createElement("span"); name.textContent = u;
-    const btn = document.createElement("button"); btn.textContent = "Ban";
-    btn.onclick = async ()=>{
-      if(confirm(`Ban ${u}?`)){
-        await db.ref("bans/"+u).set(true);
-        alert(`${u} has been banned.`);
-      }
-    };
-    row.appendChild(name); row.appendChild(btn); box.appendChild(row);
-  });
-  const closeBtn = document.createElement("button"); closeBtn.textContent = "Close";
-  closeBtn.style.marginTop = "12px"; closeBtn.onclick = ()=>document.body.removeChild(modal);
-  box.appendChild(closeBtn); modal.appendChild(box); document.body.appendChild(modal);
-}
-
-async function unbanUser() {
-  const snap = await db.ref("bans").get();
-  const bans = snap.val() || {};
-  const bannedUsers = Object.keys(bans);
-  if(bannedUsers.length===0){ alert("No banned users."); return; }
-
-  const modal = document.createElement("div");
-  Object.assign(modal.style, { position: "fixed", top: "0", left: "0", width: "100%", height: "100%",
-    backgroundColor: "rgba(0,0,0,0.8)", color: "white", display: "flex",
-    justifyContent: "center", alignItems: "center", zIndex: 1000, overflow: "auto"
-  });
-
-  const box = document.createElement("div");
-  Object.assign(box.style, { backgroundColor: "#222", padding: "20px", borderRadius: "12px", minWidth: "300px" });
-  box.innerHTML = `<h2>Unban Users</h2>`;
-  bannedUsers.forEach(u=>{
-    const row = document.createElement("div");
-    row.style.display = "flex"; row.style.justifyContent = "space-between"; row.style.marginBottom = "8px";
-    const name = document.createElement("span"); name.textContent = u;
-    const btn = document.createElement("button"); btn.textContent = "Unban";
-    btn.onclick = async ()=>{
-      if(confirm(`Unban ${u}?`)){
-        await db.ref("bans/"+u).remove();
-        alert(`${u} has been unbanned.`);
-        row.remove();
-      }
-    };
-    row.appendChild(name); row.appendChild(btn); box.appendChild(row);
-  });
-  const closeBtn = document.createElement("button"); closeBtn.textContent = "Close";
-  closeBtn.style.marginTop = "12px"; closeBtn.onclick = ()=>document.body.removeChild(modal);
-  box.appendChild(closeBtn); modal.appendChild(box); document.body.appendChild(modal);
-}
-
-/* ===== CLEAR CHAT ===== */
-function clearChat(){
-  if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong");
-  db.ref("chat").remove();
-  openChat();
-}
-
-/* ===== TIME FORMAT ===== */
-function formatTime(ts){
-  if(!ts) return "";
-  const d=new Date(ts), now=new Date(), yesterday=new Date();
-  yesterday.setDate(now.getDate()-1);
-  let h=d.getHours(), m=d.getMinutes().toString().padStart(2,"0"), ap=h>=12?"pm":"am";
-  h=h%12||12;
-  if(d.toDateString()===now.toDateString()) return `Today ${h}:${m}${ap}`;
-  if(d.toDateString()===yesterday.toDateString()) return `Yesterday ${h}:${m}${ap}`;
-  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
-}
-
-/* ===== OTHER PAGES ===== */
-function openDoc(){content.innerHTML="<h2>Document</h2>";}
-function openYT(){
-  content.innerHTML=`
-  <input id="ytInput" placeholder="YouTube link">
-  <button onclick="loadYT()">Load</button><br><br>
-  <iframe id="ytFrame" width="1920" height="1080" allowfullscreen></iframe>
-  `;
-}
-function loadYT(){
-  let u=ytInput.value,id="";
-  if(u.includes("watch?v=")) id=u.split("watch?v=")[1].split("&")[0];
-  else if(u.includes("youtu.be/")) id=u.split("youtu.be/")[1];
-  ytFrame.src="https://www.youtube.com/embed/"+id;
-}
-function openGames(){window.open("game.html","_blank");}
-function openProxy(){window.open("https://reunion.remiosenifoundation.org/","_blank");}
 </script>
 </body>
 </html>
