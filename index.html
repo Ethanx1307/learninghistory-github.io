@@ -218,11 +218,12 @@ async function changeName(){
   }
 }
 
-/* ===== ADMIN BAN (CLICKABLE MODAL VERSION) ===== */
+/* ===== ADMIN BAN (CLICKABLE LIST, ALL USERS) ===== */
 async function banUser() {
   const snap = await allUsersRef.get();
   const users = snap.val() || {};
   const usernames = Object.keys(users);
+
   if(usernames.length === 0){
     alert("No users to ban.");
     return;
@@ -239,39 +240,31 @@ async function banUser() {
   Object.assign(box.style, {
     backgroundColor: "#222", padding: "20px", borderRadius: "12px", minWidth: "300px"
   });
-
   box.innerHTML = `<h2>Ban Users</h2>`;
-
-  usernames.forEach(u => {
+  usernames.forEach(u=>{
     const row = document.createElement("div");
     row.style.display = "flex";
     row.style.justifyContent = "space-between";
     row.style.marginBottom = "8px";
-
     const name = document.createElement("span");
     name.textContent = u;
-
     const btn = document.createElement("button");
     btn.textContent = "Ban";
-    btn.style.marginLeft = "8px";
-    btn.onclick = async () => {
-      if(confirm(`Are you sure you want to ban ${u}?`)){
+    btn.onclick = async ()=>{
+      if(confirm(`Ban ${u}?`)){
         await db.ref("bans/"+u).set(true);
         alert(`${u} has been banned.`);
       }
     };
-
     row.appendChild(name);
     row.appendChild(btn);
     box.appendChild(row);
   });
-
   const closeBtn = document.createElement("button");
   closeBtn.textContent = "Close";
   closeBtn.style.marginTop = "12px";
-  closeBtn.onclick = () => document.body.removeChild(modal);
+  closeBtn.onclick = ()=>document.body.removeChild(modal);
   box.appendChild(closeBtn);
-
   modal.appendChild(box);
   document.body.appendChild(modal);
 }
@@ -280,11 +273,7 @@ async function unbanUser() {
   const snap = await db.ref("bans").get();
   const bans = snap.val() || {};
   const bannedUsers = Object.keys(bans);
-
-  if(bannedUsers.length === 0){
-    alert("No users are banned.");
-    return;
-  }
+  if(bannedUsers.length===0){ alert("No banned users."); return; }
 
   const modal = document.createElement("div");
   Object.assign(modal.style, {
@@ -297,40 +286,32 @@ async function unbanUser() {
   Object.assign(box.style, {
     backgroundColor: "#222", padding: "20px", borderRadius: "12px", minWidth: "300px"
   });
-
   box.innerHTML = `<h2>Unban Users</h2>`;
-
-  bannedUsers.forEach(u => {
+  bannedUsers.forEach(u=>{
     const row = document.createElement("div");
     row.style.display = "flex";
     row.style.justifyContent = "space-between";
     row.style.marginBottom = "8px";
-
     const name = document.createElement("span");
     name.textContent = u;
-
     const btn = document.createElement("button");
     btn.textContent = "Unban";
-    btn.style.marginLeft = "8px";
-    btn.onclick = async () => {
-      if(confirm(`Are you sure you want to unban ${u}?`)){
+    btn.onclick = async ()=>{
+      if(confirm(`Unban ${u}?`)){
         await db.ref("bans/"+u).remove();
         alert(`${u} has been unbanned.`);
         row.remove();
       }
     };
-
     row.appendChild(name);
     row.appendChild(btn);
     box.appendChild(row);
   });
-
   const closeBtn = document.createElement("button");
   closeBtn.textContent = "Close";
   closeBtn.style.marginTop = "12px";
-  closeBtn.onclick = () => document.body.removeChild(modal);
+  closeBtn.onclick = ()=>document.body.removeChild(modal);
   box.appendChild(closeBtn);
-
   modal.appendChild(box);
   document.body.appendChild(modal);
 }
