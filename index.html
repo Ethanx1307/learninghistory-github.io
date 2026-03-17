@@ -112,60 +112,67 @@ function openDoc(){
   };
 }
 
-// ===== CHAT + ADMIN BAN + CLEAR + NICKNAME =====
-let nickname=localStorage.getItem("nickname");
+// ===== CHAT + ADMIN BAN + CLEAR + NICKNAME + UNIQUE NAMES =====
+let nickname="";
 let banned=false;
 
 function openChat(){
-  if(!nickname){
-    nickname=prompt("Choose your nickname:")||"Anonymous";
-    localStorage.setItem("nickname",nickname);
-  }
-
-  const userRef=db.ref("users/"+nickname);
-  userRef.set(true);
-  userRef.onDisconnect().remove();
-
-  db.ref("bans/"+nickname).on("value",s=>{
-    banned=!!s.val();
-    if(banned){
-      document.getElementById("msgInput")?.setAttribute("disabled",true);
-      document.getElementById("banMsg")?.style.display="block";
+  (async()=>{
+    while(true){
+      let n=prompt("Choose your nickname:")||"Anonymous";
+      const snapshot=await db.ref("users/"+n).get();
+      if(snapshot.exists()) { alert("Name already taken. Pick another."); continue; }
+      nickname=n;
+      localStorage.setItem("nickname",nickname);
+      break;
     }
-  });
 
-  content.innerHTML=`
-    <h2>Chat</h2>
-    <button onclick="changeName()">Change Nickname</button>
-    <button onclick="clearChat()">Clear Chat</button>
-    <div id="banMsg" class="banned" style="display:none">You are banned from chatting.</div>
-    <div id="chatBox"></div>
-    <input id="msgInput" placeholder="Message">
-    <button onclick="sendMsg()">Send</button>
-    ${isAdmin?`<div class="adminBox"><h3>Admin Panel</h3><div id="userList"></div></div>`:""}
-  `;
+    const userRef=db.ref("users/"+nickname);
+    userRef.set(true);
+    userRef.onDisconnect().remove();
 
-  const chatBox=document.getElementById("chatBox");
-
-  db.ref("chat").limitToLast(100).on("child_added",snap=>{
-    const m=snap.val();
-    const d=document.createElement("div");
-    d.className="msg";
-    d.innerHTML=`<span class="name">${m.name}</span> <span class="time">${formatTime(m.time)}</span>: ${m.text}`;
-    chatBox.appendChild(d);
-    chatBox.scrollTop=chatBox.scrollHeight;
-  });
-
-  if(isAdmin){
-    db.ref("users").on("value",snap=>{
-      let html="";
-      snap.forEach(u=>{
-        const name=u.key;
-        html+=`${name} <button onclick="banUser('${name}')">Ban</button> <button onclick="unbanUser('${name}')">Unban</button><br>`;
-      });
-      document.getElementById("userList").innerHTML=html;
+    db.ref("bans/"+nickname).on("value",s=>{
+      banned=!!s.val();
+      if(banned){
+        document.getElementById("msgInput")?.setAttribute("disabled",true);
+        document.getElementById("banMsg")?.style.display="block";
+      }
     });
-  }
+
+    content.innerHTML=`
+      <h2>Chat</h2>
+      <button onclick="changeName()">Change Nickname</button>
+      <button onclick="clearChat()">Clear Chat</button>
+      <div id="banMsg" class="banned" style="display:none">You are banned from chatting.</div>
+      <div id="chatBox"></div>
+      <input id="msgInput" placeholder="Message">
+      <button onclick="sendMsg()">Send</button>
+      ${isAdmin?`<div class="adminBox"><h3>Admin Panel</h3><div id="userList"></div></div>`:""}
+    `;
+
+    const chatBox=document.getElementById("chatBox");
+
+    db.ref("chat").limitToLast(100).on("child_added",snap=>{
+      const m=snap.val();
+      const d=document.createElement("div");
+      d.className="msg";
+      d.innerHTML=`<span class="name">${m.name}</span> <span class="time">${formatTime(m.time)}</span>: ${m.text}`;
+      chatBox.appendChild(d);
+      chatBox.scrollTop=chatBox.scrollHeight;
+    });
+
+    if(isAdmin){
+      db.ref("users").on("value",snap=>{
+        let html="";
+        snap.forEach(u=>{
+          const name=u.key;
+          html+=`${name} <button onclick="banUser('${name}')">Ban</button> <button onclick="unbanUser('${name}')">Unban</button><br>`;
+        });
+        document.getElementById("userList").innerHTML=html;
+      });
+    }
+
+  })();
 }
 
 function sendMsg(){
@@ -187,12 +194,18 @@ function clearChat(){
 }
 
 function changeName(){
-  const n=prompt("Enter new nickname:");
-  if(n){
-    nickname=n;
-    localStorage.setItem("nickname",n);
-    openChat();
-  }
+  (async()=>{
+    while(true){
+      let n=prompt("Enter new nickname:");
+      if(!n) return;
+      const snapshot=await db.ref("users/"+n).get();
+      if(snapshot.exists()) { alert("Name already taken. Pick another."); continue; }
+      nickname=n;
+      localStorage.setItem("nickname",n);
+      openChat();
+      break;
+    }
+  })();
 }
 
 // ===== YT / GAMES / PROXY =====
@@ -212,7 +225,6 @@ function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
 function formatTime(ts){
   const d=new Date(ts),t=new Date();
   const y=new Date(); y.setDate(t.getDate()-1);
-
   let hours=d.getHours(),minutes=d.getMinutes().toString().padStart(2,"0");
   const ampm=hours>=12?"PM":"AM";
   hours=hours%12||12;
