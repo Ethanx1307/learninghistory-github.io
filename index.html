@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Math quiz</title>
+<title>Learning Math</title>
 <style>
 body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
 #quiz{max-width:720px;margin:60px auto;background:#111;padding:40px;border-radius:12px}
@@ -55,7 +55,13 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
 <script>
+// ---------- PING ----------
+const pingSound=new Audio("https://actions.google.com/sounds/v1/notifications/pop.mp3");
+pingSound.preload="auto";
+
+// ---------- FIREBASE ----------
 const firebaseConfig={
   apiKey:"AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
   authDomain:"learning-history-1bfd5.firebaseapp.com",
@@ -68,111 +74,106 @@ const firebaseConfig={
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 const storage=firebase.storage();
-
 let isAdmin=false;
 
-// ===== QUIZ =====
-let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"]];
+// ---------- QUIZ ----------
+let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"],["-5+12","7"]];
 questions.sort(()=>Math.random()-0.5);
-
-let i=0,score=0;
+let i=0;
+function loadQ(){q.textContent=questions[i][0];n.textContent=i+1;a.value="";feedback.textContent="";}
+loadQ();
 function submitQ(){
   const v=a.value.trim();
   if(v==="ethandagod@1"){isAdmin=true;unlockApp();return;}
-  if(v==="opensesame"||v==="open sesame"){unlockApp();return;}
-  if(v===questions[i][1]) score++;
-  i++; i<questions.length?loadQ():finishQ();
+  if(v==="opensesame"){unlockApp();return;}
+  feedback.textContent=v===questions[i][1]?"Correct!":"Incorrect";
+  i++;if(i<questions.length)setTimeout(loadQ,400);
 }
-function loadQ(){q.textContent=questions[i][0];n.textContent=i+1;a.value="";}
-function finishQ(){quiz.innerHTML=`<h1>Score</h1><h2>${score}/${questions.length}</h2>`;}
 function unlockApp(){quiz.style.display="none";app.style.display="block";openChat();}
-loadQ();
 
-// ===== CHAT =====
-let userId=localStorage.getItem("userId")||Date.now().toString();
-localStorage.setItem("userId",userId);
+// ---------- CHAT ----------
+let userId=localStorage.getItem("userId");
+if(!userId){userId=Date.now().toString();localStorage.setItem("userId",userId);}
 let nickname=localStorage.getItem("nickname");
+if(!nickname){nickname=prompt("Choose your nickname:")||"Anonymous";localStorage.setItem("nickname",nickname);}
 
-async function openChat(){
-  if(!nickname){
-    nickname=prompt("Choose nickname")||"Anonymous";
-    localStorage.setItem("nickname",nickname);
-  }
-
-  content.innerHTML=`
-  <h2>Chat</h2>
-  <button onclick="changeName()">Change Nickname</button>
-  <button onclick="clearChat()">Clear Chat</button>
-  <div id="chatBox"></div>
-  <input id="msgInput" placeholder="Type message (paste image with Ctrl+V)">
-  <button onclick="sendMsg()">Send</button>
-  `;
-
-  const chatBox=document.getElementById("chatBox");
-  const msgInput=document.getElementById("msgInput");
-
-  msgInput.addEventListener("paste",async e=>{
-    const item=[...e.clipboardData.items].find(i=>i.type.startsWith("image"));
-    if(!item) return;
-    const file=item.getAsFile();
-    const ref=storage.ref(`chatImages/${userId}_${Date.now()}.png`);
-    const snap=await ref.put(file);
-    const url=await snap.ref.getDownloadURL();
-    db.ref("chat").push({name:nickname,img:url,time:Date.now()});
-  });
-
-  db.ref("chat").on("child_added",snap=>{
-    const m=snap.val();
-    const div=document.createElement("div");
-    div.className="msg";
-    div.innerHTML=m.img
-      ? `<div class="time">${formatTime(m.time)}</div><b>${m.name}</b><br><img src="${m.img}" style="max-width:220px;border-radius:6px">`
-      : `<div class="time">${formatTime(m.time)}</div><b>${m.name}</b>: ${m.text}`;
-    chatBox.appendChild(div);
-    chatBox.scrollTop=chatBox.scrollHeight;
-
-    if(m.name!==nickname && !document.hidden){
-      new Audio("https://cdn.jsdelivr.net/gh/stephenrsm/discord-sounds/sounds/discord_message.mp3").play();
-    }
-  });
-
-  window.sendMsg=()=>{
-    if(!msgInput.value.trim()) return;
-    db.ref("chat").push({name:nickname,text:msgInput.value,time:Date.now()});
-    msgInput.value="";
-  };
+function openChat(){
+content.innerHTML=`
+<h2>Chat</h2>
+<button onclick="changeName()">Change Nickname</button>
+<button onclick="clearChat()">Clear Chat</button>
+<div id="chatBox"></div>
+<input id="msgInput"><button onclick="sendMsg()">Send</button>
+`;
+const chatBox=document.getElementById("chatBox");
+db.ref("users/"+userId).set({name:nickname,lastSeen:Date.now()});
+db.ref("chat").on("child_added",snap=>{
+  const m=snap.val();
+  const div=document.createElement("div");
+  div.className="msg";
+  div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text||""}`;
+  chatBox.appendChild(div);
+  chatBox.scrollTop=chatBox.scrollHeight;
+  if(m.name!==nickname){pingSound.currentTime=0;pingSound.play().catch(()=>{});}
+});
 }
 
-// ===== DOCUMENT =====
+function sendMsg(){
+const input=document.getElementById("msgInput");
+if(!input.value.trim())return;
+db.ref("users/"+userId).update({lastSeen:Date.now()});
+db.ref("chat").push({name:nickname,text:input.value,time:Date.now()});
+input.value="";
+}
+
+function changeName(){
+if(prompt("Enter code 4293")!=="4293")return;
+nickname=prompt("New nickname")||nickname;
+localStorage.setItem("nickname",nickname);
+db.ref("users/"+userId).update({name:nickname});
+}
+
+function clearChat(){
+if(prompt("Enter code to clear chat")!=="Ethandagod")return;
+db.ref("chat").remove();
+openChat();
+}
+
+// ---------- DOC ----------
+let currentDoc="doc";
 function openDoc(){
-  content.innerHTML=`
-  <h2>Document</h2>
-  <button onclick="editDoc(false)">Edit</button>
-  <button onclick="editDoc(true)">Premium</button>
-  <div id="editor" contenteditable="false"></div>`;
-  loadDocument(false);
+content.innerHTML=`
+<h2>Document</h2>
+<button onclick="loadDoc('doc')">Edit</button>
+<button onclick="loadDoc('premiumDoc')">Premium</button>
+<button onclick="editDoc()">Edit current</button>
+<div id="editor" contenteditable="false"></div>`;
+loadDoc("doc");
 }
-async function loadDocument(p){
-  const snap=await db.ref(p?"premiumDoc":"doc").once("value");
-  editor.innerHTML=snap.val()||"";
+function loadDoc(t){
+currentDoc=t;
+db.ref(t).once("value",s=>{
+document.getElementById("editor").innerHTML=s.val()||"";
+document.getElementById("editor").contentEditable=false;
+});
 }
-function editDoc(p){
-  const code=p?"12345678h":"1234";
-  if(prompt("Enter edit code")!==code) return;
-  editor.contentEditable="true";
-  editor.oninput=()=>db.ref(p?"premiumDoc":"doc").set(editor.innerHTML);
+function editDoc(){
+if(prompt("Enter edit code")!=="1234")return;
+const e=document.getElementById("editor");
+e.contentEditable=true;
+e.oninput=()=>db.ref(currentDoc).set(e.innerHTML);
 }
 
-// ===== OTHER =====
-function changeName(){nickname=prompt("New nickname")||nickname;localStorage.setItem("nickname",nickname);}
-function clearChat(){if(prompt("Code")!=="Ethandagod")return;db.ref("chat").remove();}
-function openYT(){content.innerHTML="<iframe src='https://youtube.com'></iframe>";}
+// ---------- YT / GAMES / PROXY ----------
+function openYT(){content.innerHTML=`<input id="yt"><button onclick="loadYT()">Load</button><iframe id="f"></iframe>`;}
+function loadYT(){f.src="https://www.youtube.com/embed/"+yt.value.split("v=")[1];}
 function openGames(){window.open("game.html","_blank");}
 function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
 
+// ---------- TIME ----------
 function formatTime(ts){
-  const d=new Date(ts);
-  return d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+const d=new Date(ts),h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
+return h+":"+m+(d.getHours()>=12?"PM":"AM");
 }
 </script>
 </body>
