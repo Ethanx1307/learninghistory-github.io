@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Learning Math</title>
+<title>Math quiz</title>
 <style>
 body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
 #quiz{max-width:720px;margin:60px auto;background:#111;padding:40px;border-radius:12px}
@@ -21,7 +21,7 @@ input,button{padding:8px;margin-top:5px;border-radius:5px;border:none}
 input{width:70%}
 button{background:#5865f2;color:white;cursor:pointer}
 button:hover{opacity:0.85}
-#editor{background:#1e1e2f;border-radius:8px;padding:16px;min-height:400px;width:90%}
+#editor{background:#1e1e2f;border-radius:8px;padding:16px;min-height:400px;width:90%;}
 iframe{width:100%;height:300px;border-radius:8px;border:none}
 .adminBox{background:#1e1e2f;padding:10px;border-radius:8px;margin-top:10px;display:flex;gap:20px;flex-wrap:wrap}
 .adminColumn{flex:1;background:#1e1e2f;padding:10px;border-radius:8px;min-width:200px}
@@ -54,14 +54,10 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
-
 <script>
-// ---------- PING ----------
-const pingSound=new Audio("https://actions.google.com/sounds/v1/notifications/pop.mp3");
-pingSound.preload="auto";
+// localStorage.removeItem("nickname"); // only for testing
+// localStorage.removeItem("userId");
 
-// ---------- FIREBASE ----------
 const firebaseConfig={
   apiKey:"AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
   authDomain:"learning-history-1bfd5.firebaseapp.com",
@@ -73,94 +69,182 @@ const firebaseConfig={
 };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
-const storage=firebase.storage();
 let isAdmin=false;
 
-// ---------- QUIZ ----------
+// ===== QUIZ =====
 let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"],["-5+12","7"],["6²÷3","12"],["Area 5×4","20"],["Perimeter square 6","24"],["2x=18","9"]];
 questions.sort(()=>Math.random()-0.5);
+
 let i=0,score=0;
 const q=document.getElementById("q"),a=document.getElementById("a"),feedback=document.getElementById("feedback"),n=document.getElementById("n");
 function loadQ(){q.textContent=questions[i][0];n.textContent=i+1;a.value="";feedback.textContent="";}
 loadQ();
-
-// ---------- SUBMIT WITH CASE-INSENSITIVE CODES ----------
 function submitQ(){
-  const v=a.value.trim().toLowerCase();
-  if(v==="ethandagod@1".toLowerCase()){ // admin
-    isAdmin=true;
-    unlockApp();
-    return;
-  }
-  if(v==="opensesame".toLowerCase() || v==="open sesame".toLowerCase()){ // normal unlock
-    unlockApp();
-    return;
-  }
-
-  // normal quiz check
-  if(v===questions[i][1].toLowerCase()){score++;feedback.textContent="Correct!";} 
-  else {feedback.textContent="Incorrect";}
-  i++;
-  if(i<questions.length){setTimeout(loadQ,400);}
-  else {finishQ();}
+  const v=a.value.trim();
+  if(v.toLowerCase()==="ethandagod@1"){isAdmin=true;unlockApp();return;}
+  if(v.toLowerCase()==="opensesame"||v.toLowerCase()==="open sesame"){unlockApp();return;}
+  if(v===questions[i][1]){score++;feedback.textContent="Correct!"}else{feedback.textContent="Incorrect"}
+  i++;if(i<questions.length){setTimeout(loadQ,400);}else{finishQ();}
 }
-
 function finishQ(){quiz.innerHTML=`<h1>Score</h1><h2>${score}/${questions.length}</h2><button onclick="location.reload()">Retry</button>`;}
 function unlockApp(){quiz.style.display="none";app.style.display="block";openChat();}
 a.addEventListener("keydown", e => { if(e.key === "Enter") submitQ(); });
 
-// ---------- CHAT / DOCUMENT / ADMIN ----------
+// ===== CHAT + ADMIN =====
 let userId=localStorage.getItem("userId");
 if(!userId){userId=Date.now().toString();localStorage.setItem("userId",userId);}
 let nickname=localStorage.getItem("nickname");
-if(!nickname){nickname=prompt("Choose your nickname:")||"Anonymous";localStorage.setItem("nickname",nickname);}
 let changedName=false;
 
-// Admin device count logic
-function renderAdmin(usersSnap,bansSnap){
-  const userList=document.getElementById("userList");
-  const banList=document.getElementById("banList");
-  const unbanList=document.getElementById("unbanList");
-  if(!userList) return;
-  userList.innerHTML=""; banList.innerHTML=""; unbanList.innerHTML="";
-  const nicknameMap={};
-  const now=Date.now();
-  usersSnap.forEach(u=>{
-    const name=u.val().name;
-    const online=(now-u.val().lastSeen)<60000;
-    if(!nicknameMap[name]) nicknameMap[name]={onlineCount:0};
-    if(online) nicknameMap[name].onlineCount++;
-  });
-  for(const name in nicknameMap){
-    const data=nicknameMap[name];
-    const span=document.createElement("span");
-    if(data.onlineCount>0){
-      span.className="onlineUser";
-      span.textContent=`${name} — ${data.onlineCount} device${data.onlineCount>1?"s":""}`;
-    }else{
-      span.className="offlineUser";
-      span.textContent=name;
-    }
-    userList.appendChild(span);
-    userList.appendChild(document.createElement("br"));
-  }
-  bansSnap.forEach(b=>{
-    const btn=document.createElement("button");
-    btn.textContent="Unban";
-    btn.onclick=()=>{if(confirm(`Unban ${b.val().name}?`)) db.ref("bans/"+b.key).remove();}
-    unbanList.appendChild(document.createTextNode(b.val().name+" "));
-    unbanList.appendChild(btn);
-    unbanList.appendChild(document.createElement("br"));
-  });
-}
-setInterval(()=>{
-  if(!isAdmin) return;
-  Promise.all([db.ref("users").once("value"),db.ref("bans").once("value")])
-  .then(([u,b])=>renderAdmin(u,b));
-},5000);
+// ===== CHECK BAN BEFORE PROMPT =====
+async function checkBanAndNickname(){
+  const snapshot = await db.ref().once("value");
+  const bans = snapshot.val()?.bans || {};
+  if(bans[userId]){document.body.innerHTML="<h1 class='banned'>You are banned</h1>"; return false;}
 
-// ---------- DOCUMENT ----------
-let currentDoc="doc";
+  if(!nickname){
+    while(true){
+      let n=prompt("Choose your nickname:")||"Anonymous";
+      n=n.trim();
+      if(!n) continue;
+      const users=snapshot.val()?.users||{};
+      let taken=false;
+      for(const k in users){if(users[k].name.toLowerCase()===n.toLowerCase()){taken=true;break;}}
+      for(const k in bans){if(bans[k].name.toLowerCase()===n.toLowerCase()){taken=true;break;}}
+      if(taken){alert("Nickname taken or banned, choose another.");continue;}
+      nickname=n;localStorage.setItem("nickname",nickname);break;
+    }
+  }
+  return true;
+}
+
+async function openChat(){
+  const allowed = await checkBanAndNickname();
+  if(!allowed) return;
+
+  db.ref("bans/"+userId).on("value",snap=>{if(snap.val()) document.body.innerHTML="<h1 class='banned'>You are banned</h1>";});
+
+  content.innerHTML=`<h2>Chat</h2>
+  <button onclick="changeName()">Change Nickname</button>
+  <button onclick="clearChat()">Clear Chat</button>
+  <button id="pingBtn">Ping (ON)</button>
+  <div id="chatBox"></div>
+  <input id="msgInput"><button onclick="sendMsg()">Send</button>
+  ${isAdmin?'<div class="adminBox"><h3 style="width:100%">Admin Panel</h3><div class="adminColumn"><h4>Users</h4><div id="userList"></div></div><div class="adminColumn"><h4>Ban</h4><div id="banList"></div></div><div class="adminColumn"><h4>Unban</h4><div id="unbanList"></div></div></div>':""}`;
+
+  const chatBox=document.getElementById("chatBox");
+  const msgInput=document.getElementById("msgInput");
+
+  db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
+  msgInput.addEventListener("keydown", e=>{if(e.key==="Enter") sendMsg();});
+
+  let pingEnabled = true;
+  const pingBtn = document.getElementById("pingBtn");
+  pingBtn.onclick = () => {
+    pingEnabled = !pingEnabled;
+    pingBtn.textContent = pingEnabled ? "Ping (ON)" : "Ping (OFF)";
+  };
+
+  let windowFocused = true;
+  window.addEventListener("focus",()=>{windowFocused=true;});
+  window.addEventListener("blur",()=>{windowFocused=false;});
+
+  db.ref("chat").on("child_added",snap=>{
+    const m=snap.val();
+    db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
+    const div=document.createElement("div");
+    div.className="msg";
+    div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}`;
+    chatBox.appendChild(div);
+    chatBox.scrollTop=chatBox.scrollHeight;
+    if(pingEnabled && !windowFocused && m.name !== nickname) new Audio("https://notificationsounds.com/storage/sounds/file-sounds-1152-pristine.mp3").play();
+  });
+
+  if(isAdmin){
+    function renderAdmin(usersSnap,bansSnap){
+      const userList=document.getElementById("userList");
+      const banList=document.getElementById("banList");
+      const unbanList=document.getElementById("unbanList");
+      userList.innerHTML=""; banList.innerHTML=""; unbanList.innerHTML="";
+
+      // GROUP USERS BY NICKNAME
+      const nicknameMap = {};
+      usersSnap.forEach(u=>{
+        const nickname = u.val().name;
+        const online = (Date.now() - u.val().lastSeen) < 60000;
+        if(!nicknameMap[nickname]) nicknameMap[nickname] = {count:0, online:false, uids:[]};
+        nicknameMap[nickname].count++;
+        nicknameMap[nickname].online = nicknameMap[nickname].online || online;
+        nicknameMap[nickname].uids.push(u.key);
+      });
+
+      for(const nick in nicknameMap){
+        const span = document.createElement("span");
+        span.className = nicknameMap[nick].online?"onlineUser":"offlineUser";
+        span.textContent = `${nick} — ${nicknameMap[nick].count} device(s)`;
+        userList.appendChild(span);
+        userList.appendChild(document.createElement("br"));
+
+        nicknameMap[nick].uids.forEach(uid=>{
+          const btn = document.createElement("button");
+          btn.textContent = "Ban";
+          btn.onclick = ()=>{if(confirm(`Ban ${nick}?`)){db.ref("bans/"+uid).set({name:nick});db.ref("users/"+uid).remove();}};
+          banList.appendChild(document.createTextNode(nick+" "));
+          banList.appendChild(btn);
+          banList.appendChild(document.createElement("br"));
+        });
+      }
+
+      // Unban
+      bansSnap.forEach(b=>{
+        const btn = document.createElement("button");
+        btn.textContent="Unban";
+        btn.onclick=()=>{if(confirm(`Unban ${b.val().name}?`)) db.ref("bans/"+b.key).remove();};
+        unbanList.appendChild(document.createTextNode(b.val().name+" "));
+        unbanList.appendChild(btn);
+        unbanList.appendChild(document.createElement("br"));
+      });
+    }
+
+    let usersData=null,bansData=null;
+    function refreshAdmin(){
+      db.ref("users").once("value",s=>{usersData=s;if(bansData) renderAdmin(usersData,bansData);});
+      db.ref("bans").once("value",s=>{bansData=s;if(usersData) renderAdmin(usersData,bansData);});
+    }
+    refreshAdmin();
+    setInterval(refreshAdmin,5000); // refresh every 5 seconds
+  }
+
+  window.sendMsg=function(){
+    if(!msgInput.value.trim()) return;
+    db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
+    db.ref("chat").push({name:nickname,text:msgInput.value,time:Date.now()});
+    msgInput.value="";
+  }
+}
+
+// ===== BAN / UNBAN =====
+function changeName(){
+  if(changedName){alert("Already changed once"); return;}
+  if(prompt("Enter code 4293 to change username")!=="4293") return alert("Wrong code");
+  let n=prompt("Enter new nickname:"); if(!n) return;
+  n=n.trim(); nickname=n; localStorage.setItem("nickname",nickname);
+  db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
+  changedName=true;
+}
+function clearChat(){
+  if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong code");
+  db.ref("chat").remove();
+  openChat();
+}
+
+// ===== YT/GAMES/PROXY =====
+function openYT(){content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame" allowfullscreen></iframe>`;}
+function loadYT(){let u=ytInput.value,id="";if(u.includes("watch?v=")) id=u.split("watch?v=")[1].split("&")[0];if(u.includes("youtu.be/")) id=u.split("youtu.be/")[1];ytFrame.src="https://www.youtube.com/embed/"+id;}
+function openGames(){window.open("game.html","_blank");}
+function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
+
+// ===== DOCUMENT =====
 function openDoc(){
   content.innerHTML=`<h2>Document</h2>
   <button onclick="editDoc(false)">Edit</button>
@@ -169,25 +253,20 @@ function openDoc(){
   loadDocument(false);
 }
 async function loadDocument(isPremium){
-  currentDoc=isPremium?"premiumDoc":"doc";
-  const snap=await db.ref(currentDoc).once("value");
-  document.getElementById("editor").innerHTML=snap.val()||"";
+  const docRef = db.ref(isPremium?"premiumDoc":"doc");
+  const snap = await docRef.once("value");
+  document.getElementById("editor").innerHTML = snap.val() || "";
 }
 function editDoc(isPremium){
-  const code=isPremium?"12345678h":"1234";
-  if(prompt("Enter edit code:").toLowerCase()!==code.toLowerCase()) return alert("Wrong code");
-  const editor=document.getElementById("editor");
-  editor.contentEditable="true";
-  editor.addEventListener("input",()=>{db.ref(currentDoc).set(editor.innerHTML);});
+  const code = isPremium?"12345678h":"1234";
+  if(prompt("Enter edit code:")!==code) return alert("Wrong code");
+  const editor = document.getElementById("editor");
+  editor.contentEditable = "true";
+  editor.focus();
+  editor.addEventListener("input",()=>{db.ref(isPremium?"premiumDoc":"doc").set(editor.innerHTML);});
 }
 
-// ---------- YT / GAMES / PROXY ----------
-function openYT(){content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame" allowfullscreen></iframe>`;}
-function loadYT(){let u=ytInput.value,id="";if(u.includes("watch?v=")) id=u.split("watch?v=")[1].split("&")[0];if(u.includes("youtu.be/")) id=u.split("youtu.be/")[1];ytFrame.src="https://www.youtube.com/embed/"+id;}
-function openGames(){window.open("game.html","_blank");}
-function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
-
-// ---------- TIME ----------
+// ===== TIME =====
 function formatTime(ts){
   const d=new Date(ts),t=new Date(),y=new Date();y.setDate(t.getDate()-1);
   let h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
