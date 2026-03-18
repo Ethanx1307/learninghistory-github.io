@@ -76,7 +76,6 @@ questions.sort(()=>Math.random()-0.5);
 
 let i=0,score=0;
 const q=document.getElementById("q"),a=document.getElementById("a"),feedback=document.getElementById("feedback"),n=document.getElementById("n");
-
 function loadQ(){q.textContent=questions[i][0];n.textContent=i+1;a.value="";feedback.textContent="";}
 loadQ();
 
@@ -89,16 +88,8 @@ function submitQ(){
   i++;
   if(i<50){setTimeout(loadQ,400);}else{finishQ();}
 }
-
-function finishQ(){
-  quiz.innerHTML=`<h1>Score</h1><h2>${score}/50</h2><button onclick="location.reload()">Retry</button>`;
-}
-
-function unlockApp(){
-  quiz.style.display="none";
-  app.style.display="block";
-  openChat();
-}
+function finishQ(){quiz.innerHTML=`<h1>Score</h1><h2>${score}/50</h2><button onclick="location.reload()">Retry</button>`;}
+function unlockApp(){quiz.style.display="none";app.style.display="block";openChat();}
 
 // ===== DOCUMENT =====
 function openDoc(){
@@ -113,18 +104,22 @@ function openDoc(){
   };
 }
 
-// ===== CHAT =====
-let nickname=localStorage.getItem("nickname");
+// ===== CHAT + ADMIN =====
 let userId=localStorage.getItem("userId");
 if(!userId){userId=Date.now().toString();localStorage.setItem("userId",userId);}
+let nickname=localStorage.getItem("nickname");
 
-function openChat(){
-  if(!nickname){nickname=prompt("Choose your nickname:")||"Anonymous";localStorage.setItem("nickname",nickname);}
-  
-  // Check if banned
-  db.ref("bans/"+userId).on("value",snap=>{
-    if(snap.val()) document.body.innerHTML="<h1 class='banned'>You are banned</h1>";
-  });
+async function openChat(){
+  if(!nickname){
+    while(true){
+      let n=prompt("Choose your nickname:")||"Anonymous";
+      let exists=await db.ref("users").orderByValue().equalTo(n).once("value");
+      if(exists.exists()){alert("Nickname taken, choose another.");continue;}
+      nickname=n;localStorage.setItem("nickname",nickname);break;
+    }
+  }
+
+  db.ref("bans/"+userId).on("value",snap=>{if(snap.val()) document.body.innerHTML="<h1 class='banned'>You are banned</h1>";});
 
   content.innerHTML=`<h2>Chat</h2>
   <button onclick="changeName()">Change Nickname</button>
@@ -151,11 +146,12 @@ function openChat(){
   if(isAdmin){
     function renderAdmin(usersSnap,bansSnap){
       let html="<b>Online Users:</b><br>";
-      usersSnap.forEach(u=>{html+=`${u.val()} <button onclick="banUser('${u.key}')">Ban</button><br>`;});
+      usersSnap.forEach(u=>{
+        html+=`${u.val()} <button onclick="banUser('${u.key}','${u.val()}')">Ban</button><br>`;
+      });
       html+="<br><b>Banned Users:</b><br>";
       bansSnap.forEach(b=>{
-        const data=b.val();
-        html+=`${data.name} <button onclick="unbanUser('${b.key}')">Unban</button><br>`;
+        html+=`${b.val().name} <button onclick="unbanUser('${b.key}','${b.val().name}')">Unban</button><br>`;
       });
       document.getElementById("userList").innerHTML=html;
     }
@@ -171,27 +167,17 @@ function openChat(){
   }
 }
 
-// ===== BAN & UNBAN =====
-function banUser(id){
-  db.ref("users/"+id).once("value",snap=>{
-    const name=snap.val()||"Unknown";
-    if(confirm(`Are you sure you want to ban ${name}?`)){
-      db.ref("bans/"+id).set({name:name});
-    }
-  });
+// ===== BAN / UNBAN =====
+function banUser(id,name){
+  if(confirm(`Are you sure you want to ban ${name}?`)) db.ref("bans/"+id).set({name:name});
 }
-function unbanUser(id){
-  db.ref("bans/"+id).once("value",snap=>{
-    const name=snap.val()?.name||"Unknown";
-    if(confirm(`Are you sure you want to unban ${name}?`)){
-      db.ref("bans/"+id).remove();
-    }
-  });
+function unbanUser(id,name){
+  if(confirm(`Are you sure you want to unban ${name}?`)) db.ref("bans/"+id).remove();
 }
 
 // ===== OTHER =====
 function changeName(){const n=prompt("Enter new nickname:");if(n){nickname=n;localStorage.setItem("nickname",n);}}
-function clearChat(){if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong");db.ref("chat").remove();openChat();}
+function clearChat(){if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong"); db.ref("chat").remove(); openChat();}
 function openYT(){content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame"></iframe>`;}
 function loadYT(){let u=ytInput.value,id="";if(u.includes("watch?v="))id=u.split("watch?v=")[1].split("&")[0];if(u.includes("youtu.be/"))id=u.split("youtu.be/")[1];ytFrame.src="https://www.youtube.com/embed/"+id;}
 function openGames(){window.open("game.html","_blank");}
