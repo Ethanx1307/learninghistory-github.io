@@ -92,116 +92,135 @@ function unlockApp(){quiz.style.display="none";app.style.display="block";openCha
 a.addEventListener("keydown", e => { if(e.key === "Enter") submitQ(); });
 
 // ===== CHAT + ADMIN =====
-let userId=localStorage.getItem("userId");
-if(!userId){userId=Date.now().toString();localStorage.setItem("userId",userId);}
-let nickname=localStorage.getItem("nickname");
+let userId = localStorage.getItem("userId");
+if(!userId){userId = Date.now().toString(); localStorage.setItem("userId", userId);}
+let nickname = localStorage.getItem("nickname");
 let changedName=false;
 
+async function getNickname(){
+    nickname = localStorage.getItem("nickname");
+
+    // Check bans first
+    const bansSnap = await db.ref("bans/"+userId).get();
+    if(bansSnap.exists()){
+        document.body.innerHTML = "<h1 class='banned'>You are banned</h1>";
+        return null;
+    }
+
+    // Force user to pick a nickname
+    while(!nickname){
+        let n = prompt("Choose your nickname:")?.trim();
+        if(!n) { alert("You must enter a nickname."); continue; }
+
+        // Check if nickname is taken or banned
+        const snapshot = await db.ref().once("value");
+        const users = snapshot.val()?.users || {};
+        const bans = snapshot.val()?.bans || {};
+        let taken = Object.values(users).some(u => u.name.toLowerCase() === n.toLowerCase()) ||
+                    Object.values(bans).some(b => b.name.toLowerCase() === n.toLowerCase());
+
+        if(taken){ alert("Nickname taken or banned, choose another."); continue; }
+
+        nickname = n;
+        localStorage.setItem("nickname", nickname);
+    }
+
+    return nickname;
+}
+
 async function openChat(){
-  if(!nickname){
-    while(true){
-      let n=prompt("Choose your nickname:")||"Anonymous";
-      n=n.trim();
-      if(!n) continue;
-      const snapshot=await db.ref().once("value");
-      const users=snapshot.val()?.users||{};
-      const bans=snapshot.val()?.bans||{};
-      let taken=false;
-      for(const k in users){if(users[k].name.toLowerCase()===n.toLowerCase()){taken=true;break;}}
-      for(const k in bans){if(bans[k].name.toLowerCase()===n.toLowerCase()){taken=true;break;}}
-      if(taken){alert("Nickname taken or banned, choose another.");continue;}
-      nickname=n;localStorage.setItem("nickname",nickname);break;
-    }
-  }
+    nickname = await getNickname();
+    if(!nickname) return; // user is banned
 
-  db.ref("bans/"+userId).on("value",snap=>{if(snap.val()) document.body.innerHTML="<h1 class='banned'>You are banned</h1>";});
+    db.ref("bans/"+userId).on("value", snap => {
+        if(snap.val()) document.body.innerHTML = "<h1 class='banned'>You are banned</h1>";
+    });
 
-  content.innerHTML=`<h2>Chat</h2>
-  <button onclick="changeName()">Change Nickname</button>
-  <button onclick="clearChat()">Clear Chat</button>
-  <div id="chatBox"></div>
-  <input id="msgInput"><button onclick="sendMsg()">Send</button>
-  ${isAdmin?'<div class="adminBox"><div class="adminColumn"><h3>Users</h3><div id="userList"></div></div><div class="adminColumn"><h3>Ban</h3><div id="banList"></div></div><div class="adminColumn"><h3>Unban</h3><div id="unbanList"></div></div></div>':""}`;
+    content.innerHTML=`<h2>Chat</h2>
+    <button onclick="changeName()">Change Nickname</button>
+    <button onclick="clearChat()">Clear Chat</button>
+    <div id="chatBox"></div>
+    <input id="msgInput"><button onclick="sendMsg()">Send</button>
+    ${isAdmin?'<div class="adminBox"><div class="adminColumn"><h3>Users</h3><div id="userList"></div></div><div class="adminColumn"><h3>Ban</h3><div id="banList"></div></div><div class="adminColumn"><h3>Unban</h3><div id="unbanList"></div></div></div>':""}`;
 
-  const chatBox=document.getElementById("chatBox");
-  const msgInput=document.getElementById("msgInput");
+    const chatBox=document.getElementById("chatBox");
+    const msgInput=document.getElementById("msgInput");
 
-  db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
-
-  msgInput.addEventListener("keydown", e=>{if(e.key==="Enter") sendMsg();});
-
-  db.ref("chat").on("child_added",snap=>{
-    const m=snap.val();
     db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
-    const div=document.createElement("div");
-    div.className="msg";
-    div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}`;
-    chatBox.appendChild(div);
-    chatBox.scrollTop=chatBox.scrollHeight;
-  });
+    msgInput.addEventListener("keydown", e=>{if(e.key==="Enter") sendMsg();});
 
-  if(isAdmin){
-    function renderAdmin(usersSnap,bansSnap){
-      const userList=document.getElementById("userList");
-      const banList=document.getElementById("banList");
-      const unbanList=document.getElementById("unbanList");
-      userList.innerHTML=""; banList.innerHTML=""; unbanList.innerHTML="";
+    db.ref("chat").on("child_added",snap=>{
+        const m=snap.val();
+        db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
+        const div=document.createElement("div");
+        div.className="msg";
+        div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}`;
+        chatBox.appendChild(div);
+        chatBox.scrollTop=chatBox.scrollHeight;
+    });
 
-      // Users column (online/offline)
-      usersSnap.forEach(u=>{
-        const online=(Date.now()-u.val().lastSeen)<60000;
-        const span=document.createElement("span");
-        span.className=online?"onlineUser":"offlineUser";
-        span.textContent=u.val().name;
-        userList.appendChild(span);
-        userList.appendChild(document.createElement("br"));
+    if(isAdmin){
+        function renderAdmin(usersSnap,bansSnap){
+            const userList=document.getElementById("userList");
+            const banList=document.getElementById("banList");
+            const unbanList=document.getElementById("unbanList");
+            userList.innerHTML=""; banList.innerHTML=""; unbanList.innerHTML="";
 
-        // Ban column button
-        const btn=document.createElement("button");
-        btn.textContent="Ban";
-        btn.onclick=()=>{if(confirm(`Ban ${u.val().name}?`)){db.ref("bans/"+u.key).set({name:u.val().name});db.ref("users/"+u.key).remove();}};
-        banList.appendChild(document.createTextNode(u.val().name+" ")); 
-        banList.appendChild(btn);
-        banList.appendChild(document.createElement("br"));
-      });
+            // Users column (online/offline)
+            usersSnap.forEach(u=>{
+                const online=(Date.now()-u.val().lastSeen)<60000;
+                const span=document.createElement("span");
+                span.className=online?"onlineUser":"offlineUser";
+                span.textContent=u.val().name;
+                userList.appendChild(span);
+                userList.appendChild(document.createElement("br"));
 
-      // Unban column
-      bansSnap.forEach(b=>{
-        const btn=document.createElement("button");
-        btn.textContent="Unban";
-        btn.onclick=()=>{if(confirm(`Unban ${b.val().name}?`)) db.ref("bans/"+b.key).remove();};
-        unbanList.appendChild(document.createTextNode(b.val().name+" "));
-        unbanList.appendChild(btn);
-        unbanList.appendChild(document.createElement("br"));
-      });
+                // Ban column button
+                const btn=document.createElement("button");
+                btn.textContent="Ban";
+                btn.onclick=()=>{if(confirm(`Ban ${u.val().name}?`)){db.ref("bans/"+u.key).set({name:u.val().name});db.ref("users/"+u.key).remove();}};
+                banList.appendChild(document.createTextNode(u.val().name+" ")); 
+                banList.appendChild(btn);
+                banList.appendChild(document.createElement("br"));
+            });
+
+            // Unban column
+            bansSnap.forEach(b=>{
+                const btn=document.createElement("button");
+                btn.textContent="Unban";
+                btn.onclick=()=>{if(confirm(`Unban ${b.val().name}?`)) db.ref("bans/"+b.key).remove();};
+                unbanList.appendChild(document.createTextNode(b.val().name+" "));
+                unbanList.appendChild(btn);
+                unbanList.appendChild(document.createElement("br"));
+            });
+        }
+
+        let usersData=null,bansData=null;
+        db.ref("users").on("value",s=>{usersData=s;if(bansData) renderAdmin(usersData,bansData);});
+        db.ref("bans").on("value",s=>{bansData=s;if(usersData) renderAdmin(usersData,bansData);});
     }
 
-    let usersData=null,bansData=null;
-    db.ref("users").on("value",s=>{usersData=s;if(bansData) renderAdmin(usersData,bansData);});
-    db.ref("bans").on("value",s=>{bansData=s;if(usersData) renderAdmin(usersData,bansData);});
-  }
-
-  window.sendMsg=function(){
-    if(!msgInput.value.trim()) return;
-    db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
-    db.ref("chat").push({name:nickname,text:msgInput.value,time:Date.now()});
-    msgInput.value="";
-  }
+    window.sendMsg=function(){
+        if(!msgInput.value.trim()) return;
+        db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
+        db.ref("chat").push({name:nickname,text:msgInput.value,time:Date.now()});
+        msgInput.value="";
+    }
 }
 
 // ===== BAN / UNBAN =====
 function changeName(){
-  if(changedName){alert("Already changed once"); return;}
-  if(prompt("Enter code 4293 to change username")!=="4293") return alert("Wrong code");
-  let n=prompt("Enter new nickname:"); if(!n) return;
-  n=n.trim(); nickname=n; localStorage.setItem("nickname",nickname);
-  db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
-  changedName=true;
+    if(changedName){alert("Already changed once"); return;}
+    if(prompt("Enter code 4293 to change username")!=="4293") return alert("Wrong code");
+    let n=prompt("Enter new nickname:"); if(!n) return;
+    n=n.trim(); nickname=n; localStorage.setItem("nickname",nickname);
+    db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
+    changedName=true;
 }
 function clearChat(){
-  if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong code");
-  db.ref("chat").remove();
-  openChat();
+    if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong code");
+    db.ref("chat").remove();
+    openChat();
 }
 
 // ===== YT/GAMES/PROXY =====
@@ -212,12 +231,12 @@ function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
 
 // ===== TIME =====
 function formatTime(ts){
-  const d=new Date(ts),t=new Date(),y=new Date();y.setDate(t.getDate()-1);
-  let h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
-  let ap=d.getHours()>=12?"PM":"AM";
-  if(d.toDateString()===t.toDateString()) return `Today ${h}:${m}${ap}`;
-  if(d.toDateString()===y.toDateString()) return `Yesterday ${h}:${m}${ap}`;
-  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
+    const d=new Date(ts),t=new Date(),y=new Date();y.setDate(t.getDate()-1);
+    let h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
+    let ap=d.getHours()>=12?"PM":"AM";
+    if(d.toDateString()===t.toDateString()) return `Today ${h}:${m}${ap}`;
+    if(d.toDateString()===y.toDateString()) return `Yesterday ${h}:${m}${ap}`;
+    return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
 }
 </script>
 </body>
