@@ -121,7 +121,7 @@ if(!userId){userId=Date.now().toString();localStorage.setItem("userId",userId);}
 function openChat(){
   if(!nickname){nickname=prompt("Choose your nickname:")||"Anonymous";localStorage.setItem("nickname",nickname);}
   
-  // Ban check on load (works online/offline)
+  // Check if banned
   db.ref("bans/"+userId).on("value",snap=>{
     if(snap.val()) document.body.innerHTML="<h1 class='banned'>You are banned</h1>";
   });
@@ -150,7 +150,7 @@ function openChat(){
 
   if(isAdmin){
     function renderAdmin(usersSnap,bansSnap){
-      let html="<b>Active Users:</b><br>";
+      let html="<b>Online Users:</b><br>";
       usersSnap.forEach(u=>{html+=`${u.val()} <button onclick="banUser('${u.key}')">Ban</button><br>`;});
       html+="<br><b>Banned Users:</b><br>";
       bansSnap.forEach(b=>{
@@ -160,8 +160,8 @@ function openChat(){
       document.getElementById("userList").innerHTML=html;
     }
     let usersData=null,bansData=null;
-    db.ref("users").on("value",s=>{usersData=s;if(bansData)renderAdmin(usersData,bansData);});
-    db.ref("bans").on("value",s=>{bansData=s;if(usersData)renderAdmin(usersData,bansData);});
+    db.ref("users").on("value",s=>{usersData=s;if(bansData) renderAdmin(usersData,bansData);});
+    db.ref("bans").on("value",s=>{bansData=s;if(usersData) renderAdmin(usersData,bansData);});
   }
 
   window.sendMsg=function(){
@@ -174,11 +174,20 @@ function openChat(){
 // ===== BAN & UNBAN =====
 function banUser(id){
   db.ref("users/"+id).once("value",snap=>{
-    const name = snap.val() || "Unknown";
-    db.ref("bans/"+id).set({name:name});
+    const name=snap.val()||"Unknown";
+    if(confirm(`Are you sure you want to ban ${name}?`)){
+      db.ref("bans/"+id).set({name:name});
+    }
   });
 }
-function unbanUser(id){db.ref("bans/"+id).remove();}
+function unbanUser(id){
+  db.ref("bans/"+id).once("value",snap=>{
+    const name=snap.val()?.name||"Unknown";
+    if(confirm(`Are you sure you want to unban ${name}?`)){
+      db.ref("bans/"+id).remove();
+    }
+  });
+}
 
 // ===== OTHER =====
 function changeName(){const n=prompt("Enter new nickname:");if(n){nickname=n;localStorage.setItem("nickname",n);}}
