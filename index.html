@@ -167,7 +167,7 @@ async function openChat(){
 }
 
 // ===== BAN / UNBAN =====
-function changeName(){if(changedName){alert("Already changed once"); return;} if(prompt("Enter code 4293 to change username")!=="4293") return alert("Wrong code"); let n=prompt("Enter new nickname:"); if(!n) return; n=n.trim(); nickname=n; localStorage.setItem("nickname",nickname); db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()}); changedName=true;}
+function changeName(){if(changedName){alert("Already changed once"); return;} if(prompt("Enter code to change username")!=="4293") return alert("Wrong code"); let n=prompt("Enter new nickname:"); if(!n) return; n=n.trim(); nickname=n; localStorage.setItem("nickname",nickname); db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()}); changedName=true;}
 function clearChat(){if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong code"); db.ref("chat").remove(); openChat();}
 
 // ===== YT/GAMES/PROXY =====
@@ -188,7 +188,7 @@ function openDoc(){
 }
 
 function editDoc(){
-  if(prompt("Enter code 1234 to edit")!=="1234") return alert("Wrong code");
+  if(prompt("Enter code to edit")!=="1234") return alert("Wrong code");
   const editor = document.getElementById("editor");
   editor.removeAttribute("readonly");
   editor.focus();
@@ -196,7 +196,7 @@ function editDoc(){
 }
 
 function premiumDoc(){
-  if(prompt("Enter premium code 12345678h")!=="12345678h") return alert("Wrong code");
+  if(prompt("Enter premium code")!=="12345678h") return alert("Wrong code");
   content.innerHTML=`<h2>Premium Document</h2>
   <button onclick="editPremium()">Edit</button>
   <textarea id="premiumEditor" readonly></textarea>`;
