@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Math quiz</title>
+<title>Learning Math</title>
 <style>
 body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
 #quiz{max-width:720px;margin:60px auto;background:#111;padding:40px;border-radius:12px}
@@ -107,7 +107,7 @@ async function checkBanAndNickname(){
       let n=prompt("Choose your nickname:")||"Anonymous";
       n=n.trim();
       if(!n) continue;
-      const users=snapshot.val()?.users||{};
+      const users=snapshot.val()?.users||{}; 
       let taken=false;
       for(const k in users){if(users[k].name.toLowerCase()===n.toLowerCase()){taken=true;break;}}
       for(const k in bans){if(bans[k].name.toLowerCase()===n.toLowerCase()){taken=true;break;}}
@@ -191,14 +191,7 @@ async function openChat(){
         nicknameMap[nick].uids.forEach(uid=>{
           const btn = document.createElement("button");
           btn.textContent = anyBanned ? "Unban" : "Ban";
-          btn.onclick = ()=>{
-            if(anyBanned){
-              if(confirm(`Unban ${nick}?`)) db.ref("bans/"+uid).remove();
-            } else {
-              if(confirm(`Ban ${nick}?`)) db.ref("bans/"+uid).set({name:nick});
-            }
-            refreshAdmin();
-          };
+          btn.onclick = ()=>{if(anyBanned){if(confirm(`Unban ${nick}?`)) db.ref("bans/"+uid).remove();} else {if(confirm(`Ban ${nick}?`)) db.ref("bans/"+uid).set({name:nick});} refreshAdmin();};
           banList.appendChild(document.createTextNode(nick+" "));
           banList.appendChild(btn);
           banList.appendChild(document.createElement("br"));
@@ -222,7 +215,7 @@ async function openChat(){
       db.ref("bans").once("value",s=>{bansData=s;if(usersData) renderAdmin(usersData,bansData);});
     }
     refreshAdmin();
-    setInterval(refreshAdmin,5000); // refresh every 5 seconds
+    setInterval(refreshAdmin,5000);
   }
 
   window.sendMsg=function(){
@@ -258,23 +251,35 @@ function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
 function openDoc(){
   content.innerHTML=`<h2>Document</h2>
   <button onclick="editDoc(false)">Edit</button>
-  <button onclick="editDoc(true)">Premium</button>
+  <button onclick="openPremiumDoc()">Premium</button>
   <div id="editor" contenteditable="false"></div>`;
   loadDocument(false);
 }
+
+async function openPremiumDoc(){
+  if(prompt("Enter premium document code:")!=="8765"){ // Premium access code
+    return alert("Wrong premium code");
+  }
+  content.innerHTML=`<h2>Premium Document</h2>
+  <button onclick="editDoc(true)">Edit</button>
+  <div id="editor" contenteditable="false"></div>`;
+  loadDocument(true);
+}
+
 async function loadDocument(isPremium){
   const docRef = db.ref(isPremium?"premiumDoc":"doc");
   const snap = await docRef.once("value");
   document.getElementById("editor").innerHTML = snap.val() || "";
 }
+
 function editDoc(isPremium){
-  const code = isPremium?"12345678h":"1234";
+  const code = "1234"; // Edit code for all docs
   if(prompt("Enter edit code:")!==code) return alert("Wrong code");
   const editor = document.getElementById("editor");
   editor.contentEditable = "true";
   editor.focus();
   editor.addEventListener("input",()=>{db.ref(isPremium?"premiumDoc":"doc").set(editor.innerHTML);});
-  loadDocument(isPremium); // load correct document after code
+  loadDocument(isPremium);
 }
 
 // ===== TIME =====
