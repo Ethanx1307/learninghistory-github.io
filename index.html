@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Learning Math</title>
+<title>Math quiz</title>
 <style>
 body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
 #quiz{max-width:720px;margin:60px auto;background:#111;padding:40px;border-radius:12px}
@@ -21,7 +21,7 @@ input,button{padding:8px;margin-top:5px;border-radius:5px;border:none}
 input{width:70%}
 button{background:#5865f2;color:white;cursor:pointer}
 button:hover{opacity:0.85}
-#editor{background:#1e1e2f;border-radius:8px;padding:16px;min-height:400px;width:90%;}
+#editor{background:#1e1e2f;border-radius:8px;padding:16px;min-height:400px;width:90%}
 iframe{width:100%;height:300px;border-radius:8px;border:none}
 .adminBox{background:#1e1e2f;padding:10px;border-radius:8px;margin-top:10px;display:flex;gap:20px;flex-wrap:wrap}
 .adminColumn{flex:1;background:#1e1e2f;padding:10px;border-radius:8px;min-width:200px}
@@ -56,9 +56,6 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <script>
-// localStorage.removeItem("nickname"); // only for testing
-// localStorage.removeItem("userId");
-
 const firebaseConfig={
   apiKey:"AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
   authDomain:"learning-history-1bfd5.firebaseapp.com",
@@ -71,222 +68,111 @@ const firebaseConfig={
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 const storage=firebase.storage();
+
 let isAdmin=false;
 
 // ===== QUIZ =====
-let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"],["-5+12","7"],["6²÷3","12"],["Area 5×4","20"],["Perimeter square 6","24"],["2x=18","9"]];
+let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"]];
 questions.sort(()=>Math.random()-0.5);
 
 let i=0,score=0;
-const q=document.getElementById("q"),a=document.getElementById("a"),feedback=document.getElementById("feedback"),n=document.getElementById("n");
-function loadQ(){q.textContent=questions[i][0];n.textContent=i+1;a.value="";feedback.textContent="";}
-loadQ();
 function submitQ(){
   const v=a.value.trim();
-  if(v.toLowerCase()==="ethandagod@1"){isAdmin=true;unlockApp();return;}
-  if(v.toLowerCase()==="opensesame"||v.toLowerCase()==="open sesame"){unlockApp();return;}
-  if(v===questions[i][1]){score++;feedback.textContent="Correct!"}else{feedback.textContent="Incorrect"}
-  i++;if(i<questions.length){setTimeout(loadQ,400);}else{finishQ();}
+  if(v==="ethandagod@1"){isAdmin=true;unlockApp();return;}
+  if(v==="opensesame"||v==="open sesame"){unlockApp();return;}
+  if(v===questions[i][1]) score++;
+  i++; i<questions.length?loadQ():finishQ();
 }
-function finishQ(){quiz.innerHTML=`<h1>Score</h1><h2>${score}/${questions.length}</h2><button onclick="location.reload()">Retry</button>`;}
+function loadQ(){q.textContent=questions[i][0];n.textContent=i+1;a.value="";}
+function finishQ(){quiz.innerHTML=`<h1>Score</h1><h2>${score}/${questions.length}</h2>`;}
 function unlockApp(){quiz.style.display="none";app.style.display="block";openChat();}
-a.addEventListener("keydown", e => { if(e.key === "Enter") submitQ(); });
+loadQ();
 
-// ===== CHAT + ADMIN + IMAGE UPLOAD =====
-let userId=localStorage.getItem("userId");
-if(!userId){userId=Date.now().toString();localStorage.setItem("userId",userId);}
+// ===== CHAT =====
+let userId=localStorage.getItem("userId")||Date.now().toString();
+localStorage.setItem("userId",userId);
 let nickname=localStorage.getItem("nickname");
-let changedName=false;
-
-async function checkBanAndNickname(){
-  const snapshot = await db.ref().once("value");
-  const bans = snapshot.val()?.bans || {};
-  if(bans[userId]){document.body.innerHTML="<h1 class='banned'>You are banned</h1>"; return false;}
-  if(!nickname){
-    while(true){
-      let n=prompt("Choose your nickname:")||"Anonymous";
-      n=n.trim();
-      if(!n) continue;
-      const users=snapshot.val()?.users||{};
-      let taken=false;
-      for(const k in users){if(users[k].name.toLowerCase()===n.toLowerCase()){taken=true;break;}}
-      for(const k in bans){if(bans[k].name.toLowerCase()===n.toLowerCase()){taken=true;break;}}
-      if(taken){alert("Nickname taken or banned, choose another.");continue;}
-      nickname=n;localStorage.setItem("nickname",nickname);break;
-    }
-  }
-  return true;
-}
 
 async function openChat(){
-  const allowed = await checkBanAndNickname();
-  if(!allowed) return;
+  if(!nickname){
+    nickname=prompt("Choose nickname")||"Anonymous";
+    localStorage.setItem("nickname",nickname);
+  }
 
-  db.ref("bans/"+userId).on("value",snap=>{if(snap.val()) document.body.innerHTML="<h1 class='banned'>You are banned</h1>";});
-
-  content.innerHTML=`<h2>Chat</h2>
+  content.innerHTML=`
+  <h2>Chat</h2>
   <button onclick="changeName()">Change Nickname</button>
   <button onclick="clearChat()">Clear Chat</button>
-  <button id="pingBtn">Ping (ON)</button>
   <div id="chatBox"></div>
-  <input id="msgInput" placeholder="Type a message"><button onclick="sendMsg()">Send</button>
-  <input type="file" id="imgInput" accept="image/*" style="margin-top:5px"><button onclick="sendImg()">Send Image</button>
-  ${isAdmin?'<div class="adminBox"><h3 style="width:100%">Admin Panel</h3><div class="adminColumn"><h4>Users</h4><div id="userList"></div></div><div class="adminColumn"><h4>Ban</h4><div id="banList"></div></div><div class="adminColumn"><h4>Unban</h4><div id="unbanList"></div></div></div>':""}`;
+  <input id="msgInput" placeholder="Type message (paste image with Ctrl+V)">
+  <button onclick="sendMsg()">Send</button>
+  `;
 
   const chatBox=document.getElementById("chatBox");
   const msgInput=document.getElementById("msgInput");
-  const imgInput=document.getElementById("imgInput");
 
-  db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
-  msgInput.addEventListener("keydown", e=>{if(e.key==="Enter") sendMsg();});
-
-  let pingEnabled = true;
-  const pingBtn = document.getElementById("pingBtn");
-  pingBtn.onclick = () => {
-    pingEnabled = !pingEnabled;
-    pingBtn.textContent = pingEnabled ? "Ping (ON)" : "Ping (OFF)";
-  };
+  msgInput.addEventListener("paste",async e=>{
+    const item=[...e.clipboardData.items].find(i=>i.type.startsWith("image"));
+    if(!item) return;
+    const file=item.getAsFile();
+    const ref=storage.ref(`chatImages/${userId}_${Date.now()}.png`);
+    const snap=await ref.put(file);
+    const url=await snap.ref.getDownloadURL();
+    db.ref("chat").push({name:nickname,img:url,time:Date.now()});
+  });
 
   db.ref("chat").on("child_added",snap=>{
     const m=snap.val();
-    db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
     const div=document.createElement("div");
     div.className="msg";
-    if(m.img){
-      div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: <br><img src="${m.img}" style="max-width:200px;border-radius:6px">`;
-    } else {
-      div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}`;
-    }
+    div.innerHTML=m.img
+      ? `<div class="time">${formatTime(m.time)}</div><b>${m.name}</b><br><img src="${m.img}" style="max-width:220px;border-radius:6px">`
+      : `<div class="time">${formatTime(m.time)}</div><b>${m.name}</b>: ${m.text}`;
     chatBox.appendChild(div);
     chatBox.scrollTop=chatBox.scrollHeight;
 
-    if(pingEnabled && m.name!==nickname && !document.hidden){
+    if(m.name!==nickname && !document.hidden){
       new Audio("https://cdn.jsdelivr.net/gh/stephenrsm/discord-sounds/sounds/discord_message.mp3").play();
     }
   });
 
-  if(isAdmin){
-    function renderAdmin(usersSnap,bansSnap){
-      const userList=document.getElementById("userList");
-      const banList=document.getElementById("banList");
-      const unbanList=document.getElementById("unbanList");
-      userList.innerHTML=""; banList.innerHTML=""; unbanList.innerHTML="";
-
-      const nicknameMap = {};
-      usersSnap.forEach(u=>{
-        const nickname = u.val().name;
-        const online = (Date.now() - u.val().lastSeen) < 60000;
-        if(!nicknameMap[nickname]) nicknameMap[nickname] = {count:0, online:false, uids:[]};
-        nicknameMap[nickname].count++;
-        nicknameMap[nickname].online = nicknameMap[nickname].online || online;
-        nicknameMap[nickname].uids.push(u.key);
-      });
-
-      for(const nick in nicknameMap){
-        const span = document.createElement("span");
-        span.className = nicknameMap[nick].online?"onlineUser":"offlineUser";
-        span.textContent = `${nick} — ${nicknameMap[nick].count} device(s)`;
-        userList.appendChild(span);
-        userList.appendChild(document.createElement("br"));
-
-        nicknameMap[nick].uids.forEach(uid=>{
-          const btn = document.createElement("button");
-          btn.textContent = "Ban";
-          btn.onclick = ()=>{if(confirm(`Ban ${nick}?`)){db.ref("bans/"+uid).set({name:nick});db.ref("users/"+uid).remove();}};
-          banList.appendChild(document.createTextNode(nick+" "));
-          banList.appendChild(btn);
-          banList.appendChild(document.createElement("br"));
-        });
-      }
-
-      bansSnap.forEach(b=>{
-        const btn = document.createElement("button");
-        btn.textContent="Unban";
-        btn.onclick=()=>{if(confirm(`Unban ${b.val().name}?`)) db.ref("bans/"+b.key).remove();};
-        unbanList.appendChild(document.createTextNode(b.val().name+" "));
-        unbanList.appendChild(btn);
-        unbanList.appendChild(document.createElement("br"));
-      });
-    }
-
-    let usersData=null,bansData=null;
-    function refreshAdmin(){
-      db.ref("users").once("value",s=>{usersData=s;if(bansData) renderAdmin(usersData,bansData);});
-      db.ref("bans").once("value",s=>{bansData=s;if(usersData) renderAdmin(usersData,bansData);});
-    }
-    refreshAdmin();
-    setInterval(refreshAdmin,5000);
-  }
-
-  window.sendMsg=function(){
+  window.sendMsg=()=>{
     if(!msgInput.value.trim()) return;
-    db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
     db.ref("chat").push({name:nickname,text:msgInput.value,time:Date.now()});
     msgInput.value="";
-  }
-
-  window.sendImg = async function(){
-    if(!imgInput.files[0]) return;
-    const file = imgInput.files[0];
-    const path = `chatImages/${userId}_${Date.now()}_${file.name}`;
-    const snap = await storage.ref(path).put(file);
-    const url = await snap.ref.getDownloadURL();
-    db.ref("chat").push({name:nickname,img:url,time:Date.now()});
-    imgInput.value="";
-  }
+  };
 }
-
-// ===== BAN / UNBAN =====
-function changeName(){
-  if(changedName){alert("Already changed once"); return;}
-  if(prompt("Enter code 4293 to change username")!=="4293") return alert("Wrong code");
-  let n=prompt("Enter new nickname:"); if(!n) return;
-  n=n.trim(); nickname=n; localStorage.setItem("nickname",nickname);
-  db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
-  changedName=true;
-}
-function clearChat(){
-  if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong code");
-  db.ref("chat").remove();
-  openChat();
-}
-
-// ===== YT/GAMES/PROXY =====
-function openYT(){content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame" allowfullscreen></iframe>`;}
-function loadYT(){let u=ytInput.value,id="";if(u.includes("watch?v=")) id=u.split("watch?v=")[1].split("&")[0];if(u.includes("youtu.be/")) id=u.split("youtu.be/")[1];ytFrame.src="https://www.youtube.com/embed/"+id;}
-function openGames(){window.open("game.html","_blank");}
-function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
 
 // ===== DOCUMENT =====
 function openDoc(){
-  content.innerHTML=`<h2>Document</h2>
-  <button onclick="editDoc(false)">Edit (1234)</button>
-  <button onclick="editDoc(true)">Premium (12345678h)</button>
+  content.innerHTML=`
+  <h2>Document</h2>
+  <button onclick="editDoc(false)">Edit</button>
+  <button onclick="editDoc(true)">Premium</button>
   <div id="editor" contenteditable="false"></div>`;
   loadDocument(false);
 }
-async function loadDocument(isPremium){
-  const docRef = db.ref(isPremium?"premiumDoc":"doc");
-  const snap = await docRef.once("value");
-  document.getElementById("editor").innerHTML = snap.val() || "";
+async function loadDocument(p){
+  const snap=await db.ref(p?"premiumDoc":"doc").once("value");
+  editor.innerHTML=snap.val()||"";
 }
-function editDoc(isPremium){
-  const code = isPremium?"12345678h":"1234";
-  if(prompt("Enter edit code:")!==code) return alert("Wrong code");
-  const editor = document.getElementById("editor");
-  editor.contentEditable = "true";
-  editor.focus();
-  editor.addEventListener("input",()=>{db.ref(isPremium?"premiumDoc":"doc").set(editor.innerHTML);});
+function editDoc(p){
+  const code=p?"12345678h":"1234";
+  if(prompt("Enter edit code")!==code) return;
+  editor.contentEditable="true";
+  editor.oninput=()=>db.ref(p?"premiumDoc":"doc").set(editor.innerHTML);
 }
 
-// ===== TIME =====
+// ===== OTHER =====
+function changeName(){nickname=prompt("New nickname")||nickname;localStorage.setItem("nickname",nickname);}
+function clearChat(){if(prompt("Code")!=="Ethandagod")return;db.ref("chat").remove();}
+function openYT(){content.innerHTML="<iframe src='https://youtube.com'></iframe>";}
+function openGames(){window.open("game.html","_blank");}
+function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
+
 function formatTime(ts){
-  const d=new Date(ts),t=new Date(),y=new Date();y.setDate(t.getDate()-1);
-  let h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
-  let ap=d.getHours()>=12?"PM":"AM";
-  if(d.toDateString()===t.toDateString()) return `Today ${h}:${m}${ap}`;
-  if(d.toDateString()===y.toDateString()) return `Yesterday ${h}:${m}${ap}`;
-  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
+  const d=new Date(ts);
+  return d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
 }
 </script>
 </body>
