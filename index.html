@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Learning Math</title>
+<title>Math quiz</title>
 <style>
 body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
 #quiz{max-width:720px;margin:60px auto;background:#111;padding:40px;border-radius:12px}
@@ -77,103 +77,108 @@ const storage=firebase.storage();
 let isAdmin=false;
 
 // ---------- QUIZ ----------
-let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"],["-5+12","7"]];
+let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"],["-5+12","7"],["6²÷3","12"],["Area 5×4","20"],["Perimeter square 6","24"],["2x=18","9"]];
 questions.sort(()=>Math.random()-0.5);
-let i=0;
+let i=0,score=0;
+const q=document.getElementById("q"),a=document.getElementById("a"),feedback=document.getElementById("feedback"),n=document.getElementById("n");
 function loadQ(){q.textContent=questions[i][0];n.textContent=i+1;a.value="";feedback.textContent="";}
 loadQ();
 function submitQ(){
-  const v=a.value.trim();
-  if(v==="ethandagod@1"){isAdmin=true;unlockApp();return;}
-  if(v==="opensesame"){unlockApp();return;}
-  feedback.textContent=v===questions[i][1]?"Correct!":"Incorrect";
-  i++;if(i<questions.length)setTimeout(loadQ,400);
+  const v=a.value.trim().toLowerCase();
+  if(v==="ethandagod@1".toLowerCase()){isAdmin=true;unlockApp();return;}
+  if(v==="opensesame".toLowerCase()){unlockApp();return;}
+  if(v===questions[i][1]){score++;feedback.textContent="Correct!"}else{feedback.textContent="Incorrect"}
+  i++;if(i<questions.length){setTimeout(loadQ,400);}else{finishQ();}
 }
+function finishQ(){quiz.innerHTML=`<h1>Score</h1><h2>${score}/${questions.length}</h2><button onclick="location.reload()">Retry</button>`;}
 function unlockApp(){quiz.style.display="none";app.style.display="block";openChat();}
+a.addEventListener("keydown", e => { if(e.key === "Enter") submitQ(); });
 
-// ---------- CHAT ----------
+// ---------- CHAT / DOCUMENT / ADMIN ----------
 let userId=localStorage.getItem("userId");
 if(!userId){userId=Date.now().toString();localStorage.setItem("userId",userId);}
 let nickname=localStorage.getItem("nickname");
 if(!nickname){nickname=prompt("Choose your nickname:")||"Anonymous";localStorage.setItem("nickname",nickname);}
+let changedName=false;
 
-function openChat(){
-content.innerHTML=`
-<h2>Chat</h2>
-<button onclick="changeName()">Change Nickname</button>
-<button onclick="clearChat()">Clear Chat</button>
-<div id="chatBox"></div>
-<input id="msgInput"><button onclick="sendMsg()">Send</button>
-`;
-const chatBox=document.getElementById("chatBox");
-db.ref("users/"+userId).set({name:nickname,lastSeen:Date.now()});
-db.ref("chat").on("child_added",snap=>{
-  const m=snap.val();
-  const div=document.createElement("div");
-  div.className="msg";
-  div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text||""}`;
-  chatBox.appendChild(div);
-  chatBox.scrollTop=chatBox.scrollHeight;
-  if(m.name!==nickname){pingSound.currentTime=0;pingSound.play().catch(()=>{});}
-});
+// Admin device rendering logic
+function renderAdmin(usersSnap,bansSnap){
+  const userList=document.getElementById("userList");
+  const banList=document.getElementById("banList");
+  const unbanList=document.getElementById("unbanList");
+  userList.innerHTML=""; banList.innerHTML=""; unbanList.innerHTML="";
+  const nicknameMap={};
+  const now=Date.now();
+  usersSnap.forEach(u=>{
+    const name=u.val().name;
+    const online=(now-u.val().lastSeen)<60000;
+    if(!nicknameMap[name]) nicknameMap[name]={onlineCount:0};
+    if(online) nicknameMap[name].onlineCount++;
+  });
+  for(const name in nicknameMap){
+    const data=nicknameMap[name];
+    const span=document.createElement("span");
+    if(data.onlineCount>0){
+      span.className="onlineUser";
+      span.textContent=`${name} — ${data.onlineCount} device${data.onlineCount>1?"s":""}`;
+    }else{
+      span.className="offlineUser";
+      span.textContent=name;
+    }
+    userList.appendChild(span);
+    userList.appendChild(document.createElement("br"));
+  }
+  bansSnap.forEach(b=>{
+    const btn=document.createElement("button");
+    btn.textContent="Unban";
+    btn.onclick=()=>{if(confirm(`Unban ${b.val().name}?`)) db.ref("bans/"+b.key).remove();}
+    unbanList.appendChild(document.createTextNode(b.val().name+" "));
+    unbanList.appendChild(btn);
+    unbanList.appendChild(document.createElement("br"));
+  });
 }
+setInterval(()=>{
+  if(!isAdmin) return;
+  Promise.all([db.ref("users").once("value"),db.ref("bans").once("value")])
+  .then(([u,b])=>renderAdmin(u,b));
+},5000);
 
-function sendMsg(){
-const input=document.getElementById("msgInput");
-if(!input.value.trim())return;
-db.ref("users/"+userId).update({lastSeen:Date.now()});
-db.ref("chat").push({name:nickname,text:input.value,time:Date.now()});
-input.value="";
-}
-
-function changeName(){
-if(prompt("Enter code 4293")!=="4293")return;
-nickname=prompt("New nickname")||nickname;
-localStorage.setItem("nickname",nickname);
-db.ref("users/"+userId).update({name:nickname});
-}
-
-function clearChat(){
-if(prompt("Enter code to clear chat")!=="Ethandagod")return;
-db.ref("chat").remove();
-openChat();
-}
-
-// ---------- DOC ----------
+// ---------- DOCUMENT ----------
 let currentDoc="doc";
 function openDoc(){
-content.innerHTML=`
-<h2>Document</h2>
-<button onclick="loadDoc('doc')">Edit</button>
-<button onclick="loadDoc('premiumDoc')">Premium</button>
-<button onclick="editDoc()">Edit current</button>
-<div id="editor" contenteditable="false"></div>`;
-loadDoc("doc");
+  content.innerHTML=`<h2>Document</h2>
+  <button onclick="editDoc(false)">Edit</button>
+  <button onclick="editDoc(true)">Premium</button>
+  <div id="editor" contenteditable="false"></div>`;
+  loadDocument(false);
 }
-function loadDoc(t){
-currentDoc=t;
-db.ref(t).once("value",s=>{
-document.getElementById("editor").innerHTML=s.val()||"";
-document.getElementById("editor").contentEditable=false;
-});
+async function loadDocument(isPremium){
+  currentDoc=isPremium?"premiumDoc":"doc";
+  const snap=await db.ref(currentDoc).once("value");
+  document.getElementById("editor").innerHTML=snap.val()||"";
 }
-function editDoc(){
-if(prompt("Enter edit code")!=="1234")return;
-const e=document.getElementById("editor");
-e.contentEditable=true;
-e.oninput=()=>db.ref(currentDoc).set(e.innerHTML);
+function editDoc(isPremium){
+  const code=isPremium?"12345678h":"1234";
+  if(prompt("Enter edit code:").toLowerCase()!==code.toLowerCase()) return alert("Wrong code");
+  const editor=document.getElementById("editor");
+  editor.contentEditable="true";
+  editor.addEventListener("input",()=>{db.ref(currentDoc).set(editor.innerHTML);});
 }
 
 // ---------- YT / GAMES / PROXY ----------
-function openYT(){content.innerHTML=`<input id="yt"><button onclick="loadYT()">Load</button><iframe id="f"></iframe>`;}
-function loadYT(){f.src="https://www.youtube.com/embed/"+yt.value.split("v=")[1];}
+function openYT(){content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame" allowfullscreen></iframe>`;}
+function loadYT(){let u=ytInput.value,id="";if(u.includes("watch?v=")) id=u.split("watch?v=")[1].split("&")[0];if(u.includes("youtu.be/")) id=u.split("youtu.be/")[1];ytFrame.src="https://www.youtube.com/embed/"+id;}
 function openGames(){window.open("game.html","_blank");}
 function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
 
 // ---------- TIME ----------
 function formatTime(ts){
-const d=new Date(ts),h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
-return h+":"+m+(d.getHours()>=12?"PM":"AM");
+  const d=new Date(ts),t=new Date(),y=new Date();y.setDate(t.getDate()-1);
+  let h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
+  let ap=d.getHours()>=12?"PM":"AM";
+  if(d.toDateString()===t.toDateString()) return `Today ${h}:${m}${ap}`;
+  if(d.toDateString()===y.toDateString()) return `Yesterday ${h}:${m}${ap}`;
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
 }
 </script>
 </body>
