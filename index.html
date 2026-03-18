@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Math quiz</title>
+<title>Learning Math</title>
 <style>
 body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
 #quiz{max-width:720px;margin:60px auto;background:#111;padding:40px;border-radius:12px}
@@ -54,6 +54,7 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <script>
 // localStorage.removeItem("nickname"); // only for testing
 // localStorage.removeItem("userId");
@@ -69,6 +70,7 @@ const firebaseConfig={
 };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
+const storage=firebase.storage();
 let isAdmin=false;
 
 // ===== QUIZ =====
@@ -90,18 +92,16 @@ function finishQ(){quiz.innerHTML=`<h1>Score</h1><h2>${score}/${questions.length
 function unlockApp(){quiz.style.display="none";app.style.display="block";openChat();}
 a.addEventListener("keydown", e => { if(e.key === "Enter") submitQ(); });
 
-// ===== CHAT + ADMIN =====
+// ===== CHAT + ADMIN + IMAGE UPLOAD =====
 let userId=localStorage.getItem("userId");
 if(!userId){userId=Date.now().toString();localStorage.setItem("userId",userId);}
 let nickname=localStorage.getItem("nickname");
 let changedName=false;
 
-// ===== CHECK BAN BEFORE PROMPT =====
 async function checkBanAndNickname(){
   const snapshot = await db.ref().once("value");
   const bans = snapshot.val()?.bans || {};
   if(bans[userId]){document.body.innerHTML="<h1 class='banned'>You are banned</h1>"; return false;}
-
   if(!nickname){
     while(true){
       let n=prompt("Choose your nickname:")||"Anonymous";
@@ -129,11 +129,13 @@ async function openChat(){
   <button onclick="clearChat()">Clear Chat</button>
   <button id="pingBtn">Ping (ON)</button>
   <div id="chatBox"></div>
-  <input id="msgInput"><button onclick="sendMsg()">Send</button>
+  <input id="msgInput" placeholder="Type a message"><button onclick="sendMsg()">Send</button>
+  <input type="file" id="imgInput" accept="image/*" style="margin-top:5px"><button onclick="sendImg()">Send Image</button>
   ${isAdmin?'<div class="adminBox"><h3 style="width:100%">Admin Panel</h3><div class="adminColumn"><h4>Users</h4><div id="userList"></div></div><div class="adminColumn"><h4>Ban</h4><div id="banList"></div></div><div class="adminColumn"><h4>Unban</h4><div id="unbanList"></div></div></div>':""}`;
 
   const chatBox=document.getElementById("chatBox");
   const msgInput=document.getElementById("msgInput");
+  const imgInput=document.getElementById("imgInput");
 
   db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
   msgInput.addEventListener("keydown", e=>{if(e.key==="Enter") sendMsg();});
@@ -150,10 +152,17 @@ async function openChat(){
     db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
     const div=document.createElement("div");
     div.className="msg";
-    div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}`;
+    if(m.img){
+      div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: <br><img src="${m.img}" style="max-width:200px;border-radius:6px">`;
+    } else {
+      div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}`;
+    }
     chatBox.appendChild(div);
     chatBox.scrollTop=chatBox.scrollHeight;
-    if(pingEnabled) new Audio("https://www.myinstants.com/media/sounds/tindeck_1.mp3").play();
+
+    if(pingEnabled && m.name!==nickname && !document.hidden){
+      new Audio("https://cdn.jsdelivr.net/gh/stephenrsm/discord-sounds/sounds/discord_message.mp3").play();
+    }
   });
 
   if(isAdmin){
@@ -163,7 +172,6 @@ async function openChat(){
       const unbanList=document.getElementById("unbanList");
       userList.innerHTML=""; banList.innerHTML=""; unbanList.innerHTML="";
 
-      // GROUP USERS BY NICKNAME
       const nicknameMap = {};
       usersSnap.forEach(u=>{
         const nickname = u.val().name;
@@ -191,7 +199,6 @@ async function openChat(){
         });
       }
 
-      // Unban
       bansSnap.forEach(b=>{
         const btn = document.createElement("button");
         btn.textContent="Unban";
@@ -208,7 +215,7 @@ async function openChat(){
       db.ref("bans").once("value",s=>{bansData=s;if(usersData) renderAdmin(usersData,bansData);});
     }
     refreshAdmin();
-    setInterval(refreshAdmin,5000); // refresh every 5 seconds
+    setInterval(refreshAdmin,5000);
   }
 
   window.sendMsg=function(){
@@ -216,6 +223,16 @@ async function openChat(){
     db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
     db.ref("chat").push({name:nickname,text:msgInput.value,time:Date.now()});
     msgInput.value="";
+  }
+
+  window.sendImg = async function(){
+    if(!imgInput.files[0]) return;
+    const file = imgInput.files[0];
+    const path = `chatImages/${userId}_${Date.now()}_${file.name}`;
+    const snap = await storage.ref(path).put(file);
+    const url = await snap.ref.getDownloadURL();
+    db.ref("chat").push({name:nickname,img:url,time:Date.now()});
+    imgInput.value="";
   }
 }
 
