@@ -82,13 +82,10 @@ loadQ();
 
 function submitQ(){
   const v=a.value.trim().toLowerCase();
-
   if(v==="etx12345678h"){isAdmin=true;unlockApp();return;}
   if(v==="opensesame"||v==="open sesame"){unlockApp();return;}
-
   if(v===questions[i][1]){score++;feedback.textContent="Correct!"}
   else{feedback.textContent="Incorrect"}
-
   i++;
   if(i<50){setTimeout(loadQ,400);}else{finishQ();}
 }
@@ -103,12 +100,31 @@ function unlockApp(){
   openChat();
 }
 
+// ===== DOCUMENT =====
+function openDoc(){
+  content.innerHTML=`<h2>Document</h2><button id="editBtn">Edit</button><div id="editor"></div>`;
+  const ed=document.getElementById("editor");
+  ed.contentEditable=false;
+  db.ref("doc").on("value",s=>{if(document.activeElement!==ed) ed.innerHTML=s.val()||"";});
+  editBtn.onclick=()=>{
+    if(prompt("Enter edit code")!=="1219") return alert("Wrong code");
+    ed.contentEditable=true;
+    ed.oninput=()=>db.ref("doc").set(ed.innerHTML);
+  };
+}
+
 // ===== CHAT =====
 let nickname=localStorage.getItem("nickname");
-let userId=localStorage.getItem("userId")||Date.now().toString();
-localStorage.setItem("userId",userId);
+let userId=localStorage.getItem("userId");
+
+if(!userId){
+  userId=Date.now().toString();
+  localStorage.setItem("userId",userId);
+}
 
 function openChat(){
+
+  // ask name ONLY if not stored
   if(!nickname){
     nickname=prompt("Choose your nickname:")||"Anonymous";
     localStorage.setItem("nickname",nickname);
@@ -131,7 +147,7 @@ function openChat(){
   const chatBox=document.getElementById("chatBox");
   const msgInput=document.getElementById("msgInput");
 
-  // ✅ ONLY CHANGE
+  // ENTER TO SEND
   msgInput.addEventListener("keydown",e=>{
     if(e.key==="Enter") sendMsg();
   });
@@ -145,6 +161,24 @@ function openChat(){
     chatBox.scrollTop=chatBox.scrollHeight;
   });
 
+  if(isAdmin){
+    function renderAdmin(usersSnap, bansSnap){
+      let html="<b>Active Users:</b><br>";
+      usersSnap.forEach(u=>{
+        html+=`${u.val()} <button onclick="banUser('${u.key}')">Ban</button><br>`;
+      });
+      html+="<br><b>Banned Users:</b><br>";
+      bansSnap.forEach(b=>{
+        html+=`${b.key} <button onclick="unbanUser('${b.key}')">Unban</button><br>`;
+      });
+      document.getElementById("userList").innerHTML=html;
+    }
+
+    let usersData=null,bansData=null;
+    db.ref("users").on("value",s=>{usersData=s;if(bansData)renderAdmin(usersData,bansData);});
+    db.ref("bans").on("value",s=>{bansData=s;if(usersData)renderAdmin(usersData,bansData);});
+  }
+
   window.sendMsg=function(){
     if(!msgInput.value.trim()) return;
     db.ref("chat").push({name:nickname,text:msgInput.value,time:Date.now()});
@@ -152,7 +186,26 @@ function openChat(){
   }
 }
 
-// rest unchanged...
+function banUser(id){db.ref("bans/"+id).set(true);}
+function unbanUser(id){db.ref("bans/"+id).remove();}
+
+// ===== OTHER =====
+function changeName(){const n=prompt("Enter new nickname:");if(n){nickname=n;localStorage.setItem("nickname",n);}}
+function clearChat(){if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong");db.ref("chat").remove();openChat();}
+function openYT(){content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame"></iframe>`;}
+function loadYT(){let u=ytInput.value,id="";if(u.includes("watch?v="))id=u.split("watch?v=")[1].split("&")[0];if(u.includes("youtu.be/"))id=u.split("youtu.be/")[1];ytFrame.src="https://www.youtube.com/embed/"+id;}
+function openGames(){window.open("game.html","_blank");}
+function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
+
+// ===== TIME =====
+function formatTime(ts){
+  const d=new Date(ts),t=new Date(),y=new Date();y.setDate(t.getDate()-1);
+  let h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
+  let ap=d.getHours()>=12?"PM":"AM";
+  if(d.toDateString()===t.toDateString()) return `Today ${h}:${m}${ap}`;
+  if(d.toDateString()===y.toDateString()) return `Yesterday ${h}:${m}${ap}`;
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
+}
 </script>
 </body>
 </html>
