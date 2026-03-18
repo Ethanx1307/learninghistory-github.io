@@ -24,7 +24,7 @@ button:hover{opacity:0.85}
 #editor{background:#1e1e2f;border-radius:8px;padding:16px;min-height:200px}
 iframe{width:100%;height:300px;border-radius:8px;border:none}
 .adminBox{background:#1e1e2f;padding:10px;border-radius:8px;margin-top:10px;display:flex;gap:20px}
-.adminColumn{flex:1;padding:10px}
+.adminColumn{flex:1;background:#1e1e2f;padding:10px;border-radius:8px}
 .banned{color:#ff6b6b;font-weight:bold}
 .onlineUser{color:#4CAF50;font-weight:bold}
 .offlineUser{color:#ff4d4d;font-weight:bold}
@@ -55,164 +55,162 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-// Firebase config
-const firebaseConfig={ /* YOUR CONFIG HERE */ };
+// RESET localStorage for testing new user prompt (REMOVE in prod)
+// localStorage.removeItem("nickname");
+// localStorage.removeItem("userId");
+
+const firebaseConfig={
+  apiKey:"AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
+  authDomain:"learning-history-1bfd5.firebaseapp.com",
+  databaseURL:"https://learning-history-1bfd5-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"learning-history-1bfd5",
+  storageBucket:"learning-history-1bfd5.appspot.com",
+  messagingSenderId:"231811778288",
+  appId:"1:231811778288:web:d112859a8bc6143fffa435"
+};
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 let isAdmin=false;
-let userId=localStorage.getItem("userId");
-if(!userId){userId=crypto.randomUUID();localStorage.setItem("userId",userId);}
 
-// ===== MATH QUIZ (50 QUESTIONS, DISGUISED) =====
-let questions=[
-["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"],
-["-5+12","7"],["6²÷3","12"],["Area 5×4","20"],["Perimeter square 6","24"],["2x=18","9"],
-["9×6","54"],["100÷4","25"],["11²","121"],["√64","8"],["20% of 50","10"],
-["-3+10","7"],["8²÷4","16"],["Area 6×3","18"],["Perimeter square 5","20"],["3x=21","7"],
-["8×7","56"],["81÷9","9"],["10²","100"],["√49","7"],["25% of 80","20"],
-["-7+15","8"],["9²÷3","27"],["Area 7×2","14"],["Perimeter square 4","16"],["4x=32","8"],
-["6×6","36"],["72÷8","9"],["5²","25"],["√36","6"],["30% of 60","18"],
-["-2+11","9"],["12²÷6","24"],["Area 3×5","15"],["Perimeter square 3","12"],["5x=20","4"],
-["7×5","35"],["56÷7","8"],["14²","196"],["√100","10"],["10% of 200","20"],
-["-4+14","10"],["16²÷4","64"],["Area 8×2","16"],["Perimeter square 8","32"],["6x=42","7"]
-];
+// ===== QUIZ =====
+let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"],["-5+12","7"],["6²÷3","12"],["Area 5×4","20"],["Perimeter square 6","24"],["2x=18","9"]];
 questions.sort(()=>Math.random()-0.5);
 
-let i=0, score=0;
-const q=document.getElementById("q");
-const a=document.getElementById("a");
-const feedback=document.getElementById("feedback");
-const n=document.getElementById("n");
-
-function loadQ(){
-    q.textContent = questions[i][0];
-    n.textContent = i+1;
-    a.value = "";
-    feedback.textContent = "";
-}
+let i=0,score=0;
+const q=document.getElementById("q"),a=document.getElementById("a"),feedback=document.getElementById("feedback"),n=document.getElementById("n");
+function loadQ(){q.textContent=questions[i][0];n.textContent=i+1;a.value="";feedback.textContent="";}
 loadQ();
-
 function submitQ(){
-    const v=a.value.trim();
-    // Admin bypass
-    if(v==="Ethandagod@1"){isAdmin=true;unlockApp();return;}
-    if(v==="opensesame"||v==="open sesame"){unlockApp();return;}
-    // Check answer
-    if(v===questions[i][1]){score++;feedback.textContent="Correct!";} 
-    else {feedback.textContent="Incorrect";}
-    i++;
-    if(i<questions.length){setTimeout(loadQ,400);} 
-    else {finishQ();}
+  const v=a.value.trim();
+  if(v.toLowerCase()==="ethandagod@1"){isAdmin=true;unlockApp();return;}
+  if(v.toLowerCase()==="opensesame"||v.toLowerCase()==="open sesame"){unlockApp();return;}
+  if(v===questions[i][1]){score++;feedback.textContent="Correct!"}else{feedback.textContent="Incorrect"}
+  i++;if(i<questions.length){setTimeout(loadQ,400);}else{finishQ();}
 }
+function finishQ(){quiz.innerHTML=`<h1>Score</h1><h2>${score}/${questions.length}</h2><button onclick="location.reload()">Retry</button>`;}
+function unlockApp(){quiz.style.display="none";app.style.display="block";openChat();}
+a.addEventListener("keydown", e => { if(e.key === "Enter") submitQ(); });
 
-function finishQ(){
-    quiz.innerHTML=`<h1>Score</h1>
-    <h2>${score}/${questions.length}</h2>
-    <button onclick="location.reload()">Retry</button>`;
-}
-
-a.addEventListener("keydown", e=>{if(e.key==="Enter") submitQ();});
-
-// ===== DOCUMENT =====
-function openDoc(){
-content.innerHTML=`<h2>📄 Document</h2>
-<button onclick="openNormalDoc()">Normal</button>
-<button onclick="unlockPremium()">Premium</button>
-<div id="docArea"></div>`;
-}
-function openNormalDoc(){
-docArea.innerHTML=`<h3>Normal</h3>
-<button onclick="editDoc('normal')">Edit</button>
-<div id="editor" contenteditable="false">${localStorage.getItem("normalDoc")||"Empty..."}</div>`;
-}
-function unlockPremium(){
-if(prompt("Enter premium code")!=="12345678h") return alert("Wrong code");
-docArea.innerHTML=`<h3>⭐ Premium</h3>
-<button onclick="editDoc('premium')">Edit</button>
-<div id="editor" contenteditable="false">${localStorage.getItem("premiumDoc")||"Empty..."}</div>`;
-}
-function editDoc(type){
-if(prompt("Enter edit code")!=="1234") return alert("Wrong code");
-let editor=document.getElementById("editor");
-editor.contentEditable=true;
-editor.oninput=()=>{localStorage.setItem(type==="normal"?"normalDoc":"premiumDoc",editor.innerHTML);};
-}
-
-// ===== CHAT =====
+// ===== CHAT + ADMIN =====
+let userId=localStorage.getItem("userId");
+if(!userId){userId=Date.now().toString();localStorage.setItem("userId",userId);}
 let nickname=localStorage.getItem("nickname");
 let changedName=false;
-let chatListener=null;
 
-async function getNickname(){
-const banSnap=await db.ref("bans/"+userId).get();
-if(banSnap.exists()){document.body.innerHTML="<h1 class='banned'>You are banned</h1>";return null;}
-while(!nickname){
-let n=prompt("Choose nickname")?.trim();
-if(!n) continue;
-nickname=n;
-localStorage.setItem("nickname",nickname);
-}
-return nickname;
+// ===== CHECK BAN BEFORE PROMPT =====
+async function checkBanAndNickname(){
+  const snapshot = await db.ref().once("value");
+  const bans = snapshot.val()?.bans || {};
+  if(bans[userId]){document.body.innerHTML="<h1 class='banned'>You are banned</h1>"; return false;}
+
+  // Only prompt if nickname not set
+  if(!nickname){
+    while(true){
+      let n=prompt("Choose your nickname:")||"Anonymous";
+      n=n.trim();
+      if(!n) continue;
+      const users=snapshot.val()?.users||{};
+      let taken=false;
+      for(const k in users){if(users[k].name.toLowerCase()===n.toLowerCase()){taken=true;break;}}
+      for(const k in bans){if(bans[k].name.toLowerCase()===n.toLowerCase()){taken=true;break;}}
+      if(taken){alert("Nickname taken or banned, choose another.");continue;}
+      nickname=n;localStorage.setItem("nickname",nickname);break;
+    }
+  }
+  return true;
 }
 
 async function openChat(){
-nickname=await getNickname();
-if(!nickname) return;
-db.ref("bans/"+userId).on("value",snap=>{if(snap.val()) document.body.innerHTML="<h1 class='banned'>You are banned</h1>";});
-content.innerHTML=`<h2>Chat</h2>
-<button onclick="changeName()">Change Nickname</button>
-<button onclick="clearChat()">Clear Chat</button>
-<div id="chatBox"></div>
-<input id="msgInput"><button onclick="sendMsg()">Send</button>
-${isAdmin?'<div id="adminPanel"></div>':""}`;
-const chatBox=document.getElementById("chatBox");
-const msgInput=document.getElementById("msgInput");
-if(chatListener) db.ref("chat").off("child_added",chatListener);
-chatListener=db.ref("chat").on("child_added",snap=>{
-const m=snap.val();
-let div=document.createElement("div");
-div.className="msg";
-div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}`;
-chatBox.appendChild(div);
-chatBox.scrollTop=chatBox.scrollHeight;
-});
-window.sendMsg=function(){
-if(!msgInput.value.trim()) return;
-db.ref("chat").push({name:nickname,text:msgInput.value,time:Date.now()});
-msgInput.value="";
-};
-if(isAdmin){
-db.ref("users").on("value",snap=>{
-let html="<h3>Users</h3>";
-snap.forEach(u=>{html+=`${u.val().name} <button onclick="banUser('${u.key}','${u.val().name}')">Ban</button><br>`;});
-document.getElementById("adminPanel").innerHTML=html;
-});
-}
-db.ref("users/"+userId).set({name:nickname,lastSeen:Date.now()});
+  const allowed = await checkBanAndNickname();
+  if(!allowed) return;
+
+  db.ref("bans/"+userId).on("value",snap=>{if(snap.val()) document.body.innerHTML="<h1 class='banned'>You are banned</h1>";});
+
+  content.innerHTML=`<h2>Chat</h2>
+  <button onclick="changeName()">Change Nickname</button>
+  <button onclick="clearChat()">Clear Chat</button>
+  <div id="chatBox"></div>
+  <input id="msgInput"><button onclick="sendMsg()">Send</button>
+  ${isAdmin?'<div class="adminBox"><div class="adminColumn"><h3>Users</h3><div id="userList"></div></div><div class="adminColumn"><h3>Ban</h3><div id="banList"></div></div><div class="adminColumn"><h3>Unban</h3><div id="unbanList"></div></div></div>':""}`;
+
+  const chatBox=document.getElementById("chatBox");
+  const msgInput=document.getElementById("msgInput");
+
+  db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
+  msgInput.addEventListener("keydown", e=>{if(e.key==="Enter") sendMsg();});
+
+  db.ref("chat").on("child_added",snap=>{
+    const m=snap.val();
+    db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
+    const div=document.createElement("div");
+    div.className="msg";
+    div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}`;
+    chatBox.appendChild(div);
+    chatBox.scrollTop=chatBox.scrollHeight;
+  });
+
+  if(isAdmin){
+    function renderAdmin(usersSnap,bansSnap){
+      const userList=document.getElementById("userList");
+      const banList=document.getElementById("banList");
+      const unbanList=document.getElementById("unbanList");
+      userList.innerHTML=""; banList.innerHTML=""; unbanList.innerHTML="";
+
+      usersSnap.forEach(u=>{
+        const online=(Date.now()-u.val().lastSeen)<60000;
+        const span=document.createElement("span");
+        span.className=online?"onlineUser":"offlineUser";
+        span.textContent=u.val().name;
+        userList.appendChild(span);
+        userList.appendChild(document.createElement("br"));
+
+        const btn=document.createElement("button");
+        btn.textContent="Ban";
+        btn.onclick=()=>{if(confirm(`Ban ${u.val().name}?`)){db.ref("bans/"+u.key).set({name:u.val().name});db.ref("users/"+u.key).remove();}};
+        banList.appendChild(document.createTextNode(u.val().name+" ")); 
+        banList.appendChild(btn);
+        banList.appendChild(document.createElement("br"));
+      });
+
+      bansSnap.forEach(b=>{
+        const btn=document.createElement("button");
+        btn.textContent="Unban";
+        btn.onclick=()=>{if(confirm(`Unban ${b.val().name}?`)) db.ref("bans/"+b.key).remove();};
+        unbanList.appendChild(document.createTextNode(b.val().name+" "));
+        unbanList.appendChild(btn);
+        unbanList.appendChild(document.createElement("br"));
+      });
+    }
+
+    let usersData=null,bansData=null;
+    db.ref("users").on("value",s=>{usersData=s;if(bansData) renderAdmin(usersData,bansData);});
+    db.ref("bans").on("value",s=>{bansData=s;if(usersData) renderAdmin(usersData,bansData);});
+  }
+
+  window.sendMsg=function(){
+    if(!msgInput.value.trim()) return;
+    db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
+    db.ref("chat").push({name:nickname,text:msgInput.value,time:Date.now()});
+    msgInput.value="";
+  }
 }
 
-// ===== ADMIN =====
-function banUser(id,name){
-if(confirm("Ban "+name+"?")){
-db.ref("bans/"+id).set({name:name});
-db.ref("users/"+id).remove();
-}
-}
+// ===== BAN / UNBAN =====
 function changeName(){
-if(changedName) return alert("Already changed once");
-if(prompt("Enter code")!=="4293") return alert("Wrong code");
-let n=prompt("New nickname"); if(!n) return;
-nickname=n.trim();
-localStorage.setItem("nickname",nickname);
-changedName=true;
+  if(changedName){alert("Already changed once"); return;}
+  if(prompt("Enter code 4293 to change username")!=="4293") return alert("Wrong code");
+  let n=prompt("Enter new nickname:"); if(!n) return;
+  n=n.trim(); nickname=n; localStorage.setItem("nickname",nickname);
+  db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
+  changedName=true;
 }
 function clearChat(){
-if(prompt("Enter code")!=="Ethandagod") return alert("Wrong code");
-db.ref("chat").remove();
-openChat();
+  if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong code");
+  db.ref("chat").remove();
+  openChat();
 }
 
-// ===== YT / GAMES / PROXY =====
+// ===== YT/GAMES/PROXY =====
 function openYT(){content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame"></iframe>`;}
 function loadYT(){let u=ytInput.value,id="";if(u.includes("watch?v=")) id=u.split("watch?v=")[1].split("&")[0];if(u.includes("youtu.be/")) id=u.split("youtu.be/")[1];ytFrame.src="https://www.youtube.com/embed/"+id;}
 function openGames(){window.open("game.html","_blank");}
@@ -220,13 +218,13 @@ function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
 
 // ===== TIME =====
 function formatTime(ts){
-const d=new Date(ts),h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
-let ap=d.getHours()>=12?"PM":"AM";
-return `${h}:${m}${ap}`;
+  const d=new Date(ts),t=new Date(),y=new Date();y.setDate(t.getDate()-1);
+  let h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
+  let ap=d.getHours()>=12?"PM":"AM";
+  if(d.toDateString()===t.toDateString()) return `Today ${h}:${m}${ap}`;
+  if(d.toDateString()===y.toDateString()) return `Yesterday ${h}:${m}${ap}`;
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
 }
-
-// ===== APP UNLOCK =====
-function unlockApp(){quiz.style.display="none";app.style.display="block";openChat();}
 </script>
 </body>
 </html>
