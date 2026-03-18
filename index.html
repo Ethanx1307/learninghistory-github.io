@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Learning Hub</title>
+<title>Math quiz</title>
 <style>
 body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
 #quiz{max-width:720px;margin:60px auto;background:#111;padding:40px;border-radius:12px}
@@ -21,14 +21,13 @@ input,button{padding:8px;margin-top:5px;border-radius:5px;border:none}
 input{width:70%}
 button{background:#5865f2;color:white;cursor:pointer}
 button:hover{opacity:0.85}
-#editor{background:#1e1e2f;border-radius:8px;padding:16px;min-height:300px;width:100%}
+#editor{background:#1e1e2f;border-radius:8px;padding:16px;min-height:400px;width:90%;}
 iframe{width:100%;height:300px;border-radius:8px;border:none}
-.adminBox{background:#1e1e2f;padding:10px;border-radius:8px;margin-top:10px;display:flex;gap:20px}
-.adminColumn{flex:1;background:#1e1e2f;padding:10px;border-radius:8px}
+.adminBox{background:#1e1e2f;padding:10px;border-radius:8px;margin-top:10px;display:flex;gap:20px;flex-wrap:wrap}
+.adminColumn{flex:1;background:#1e1e2f;padding:10px;border-radius:8px;min-width:200px}
 .banned{color:#ff6b6b;font-weight:bold}
 .onlineUser{color:#4CAF50;font-weight:bold}
 .offlineUser{color:#ff4d4d;font-weight:bold}
-img.chatImg{max-width:300px;border-radius:8px;margin-top:4px}
 </style>
 </head>
 <body>
@@ -55,10 +54,10 @@ img.chatImg{max-width:300px;border-radius:8px;margin-top:4px}
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
-
 <script>
-// ===== Firebase =====
+// localStorage.removeItem("nickname"); // only for testing
+// localStorage.removeItem("userId");
+
 const firebaseConfig={
   apiKey:"AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
   authDomain:"learning-history-1bfd5.firebaseapp.com",
@@ -70,12 +69,12 @@ const firebaseConfig={
 };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
-const storage=firebase.storage();
 let isAdmin=false;
 
-// ===== Quiz =====
+// ===== QUIZ =====
 let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"],["-5+12","7"],["6²÷3","12"],["Area 5×4","20"],["Perimeter square 6","24"],["2x=18","9"]];
 questions.sort(()=>Math.random()-0.5);
+
 let i=0,score=0;
 const q=document.getElementById("q"),a=document.getElementById("a"),feedback=document.getElementById("feedback"),n=document.getElementById("n");
 function loadQ(){q.textContent=questions[i][0];n.textContent=i+1;a.value="";feedback.textContent="";}
@@ -91,22 +90,23 @@ function finishQ(){quiz.innerHTML=`<h1>Score</h1><h2>${score}/${questions.length
 function unlockApp(){quiz.style.display="none";app.style.display="block";openChat();}
 a.addEventListener("keydown", e => { if(e.key === "Enter") submitQ(); });
 
-// ===== Chat =====
+// ===== CHAT + ADMIN =====
 let userId=localStorage.getItem("userId");
 if(!userId){userId=Date.now().toString();localStorage.setItem("userId",userId);}
 let nickname=localStorage.getItem("nickname");
 let changedName=false;
-let pingOn = localStorage.getItem("pingOn") !== "false";
 
-// ===== Check ban + nickname =====
+// ===== CHECK BAN BEFORE PROMPT =====
 async function checkBanAndNickname(){
   const snapshot = await db.ref().once("value");
   const bans = snapshot.val()?.bans || {};
   if(bans[userId]){document.body.innerHTML="<h1 class='banned'>You are banned</h1>"; return false;}
+
   if(!nickname){
     while(true){
       let n=prompt("Choose your nickname:")||"Anonymous";
-      n=n.trim(); if(!n) continue;
+      n=n.trim();
+      if(!n) continue;
       const users=snapshot.val()?.users||{};
       let taken=false;
       for(const k in users){if(users[k].name.toLowerCase()===n.toLowerCase()){taken=true;break;}}
@@ -118,56 +118,44 @@ async function checkBanAndNickname(){
   return true;
 }
 
-// ===== Open Chat =====
 async function openChat(){
   const allowed = await checkBanAndNickname();
   if(!allowed) return;
 
-  content.innerHTML=`
-  <h2>Chat</h2>
+  db.ref("bans/"+userId).on("value",snap=>{if(snap.val()) document.body.innerHTML="<h1 class='banned'>You are banned</h1>";});
+
+  content.innerHTML=`<h2>Chat</h2>
   <button onclick="changeName()">Change Nickname</button>
   <button onclick="clearChat()">Clear Chat</button>
-  <button id="pingBtn">Ping (${pingOn?'ON':'OFF'})</button>
-  <input id="msgInput" placeholder="Type message...">
-  <input type="file" id="imageInput">
+  <button id="pingBtn">Ping (ON)</button>
   <div id="chatBox"></div>
-  ${isAdmin?'<h3>Admin Panel</h3><div class="adminBox"><div class="adminColumn"><h3>Users</h3><div id="userList"></div></div><div class="adminColumn"><h3>Ban</h3><div id="banList"></div></div><div class="adminColumn"><h3>Unban</h3><div id="unbanList"></div></div></div>':""}`;
+  <input id="msgInput"><button onclick="sendMsg()">Send</button>
+  ${isAdmin?'<div class="adminBox"><h3 style="width:100%">Admin Panel</h3><div class="adminColumn"><h4>Users</h4><div id="userList"></div></div><div class="adminColumn"><h4>Ban</h4><div id="banList"></div></div><div class="adminColumn"><h4>Unban</h4><div id="unbanList"></div></div></div>':""}`;
 
   const chatBox=document.getElementById("chatBox");
   const msgInput=document.getElementById("msgInput");
-  const pingBtn=document.getElementById("pingBtn");
-
-  pingBtn.onclick=()=>{
-    pingOn=!pingOn;
-    pingBtn.textContent=`Ping (${pingOn?'ON':'OFF'})`;
-    localStorage.setItem("pingOn",pingOn);
-  };
 
   db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
   msgInput.addEventListener("keydown", e=>{if(e.key==="Enter") sendMsg();});
+
+  let pingEnabled = true;
+  const pingBtn = document.getElementById("pingBtn");
+  pingBtn.onclick = () => {
+    pingEnabled = !pingEnabled;
+    pingBtn.textContent = pingEnabled ? "Ping (ON)" : "Ping (OFF)";
+  };
 
   db.ref("chat").on("child_added",snap=>{
     const m=snap.val();
     db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
     const div=document.createElement("div");
     div.className="msg";
-    const contentHTML = `<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text||""}` + (m.image?`<br><img src="${m.image}" class="chatImg">`:"");
-    div.innerHTML=contentHTML;
+    div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}`;
     chatBox.appendChild(div);
     chatBox.scrollTop=chatBox.scrollHeight;
-    if(pingOn && m.name!==nickname) new Audio("https://www.soundjay.com/button/sounds/button-3.mp3").play();
+    if(pingEnabled) new Audio("https://www.myinstants.com/media/sounds/tindeck_1.mp3").play();
   });
 
-  document.getElementById("imageInput").addEventListener("change", async e=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    const storageRef = storage.ref('chatImages/'+Date.now()+'_'+file.name);
-    await storageRef.put(file);
-    const url = await storageRef.getDownloadURL();
-    db.ref("chat").push({name:nickname,image:url,time:Date.now()});
-  });
-
-  // Admin Panel
   if(isAdmin){
     function renderAdmin(usersSnap,bansSnap){
       const userList=document.getElementById("userList");
@@ -175,29 +163,52 @@ async function openChat(){
       const unbanList=document.getElementById("unbanList");
       userList.innerHTML=""; banList.innerHTML=""; unbanList.innerHTML="";
 
+      // GROUP USERS BY NICKNAME
+      const nicknameMap = {};
       usersSnap.forEach(u=>{
-        const online=(Date.now()-u.val().lastSeen)<60000;
-        const row=document.createElement("div");
-        row.style.display="flex"; row.style.justifyContent="space-between"; row.style.alignItems="center";
-        const nameSpan=document.createElement("span"); nameSpan.textContent=u.val().name; nameSpan.className=online?"onlineUser":"offlineUser";
-        const btn=document.createElement("button"); btn.textContent="Ban"; btn.onclick=()=>{if(confirm(`Ban ${u.val().name}?`)){db.ref("bans/"+u.key).set({name:u.val().name});db.ref("users/"+u.key).remove();}};
-        row.appendChild(nameSpan); row.appendChild(btn);
-        userList.appendChild(row);
+        const nickname = u.val().name;
+        const online = (Date.now() - u.val().lastSeen) < 60000;
+        if(!nicknameMap[nickname]) nicknameMap[nickname] = {count:0, online:false, uids:[]};
+        nicknameMap[nickname].count++;
+        nicknameMap[nickname].online = nicknameMap[nickname].online || online;
+        nicknameMap[nickname].uids.push(u.key);
       });
 
+      for(const nick in nicknameMap){
+        const span = document.createElement("span");
+        span.className = nicknameMap[nick].online?"onlineUser":"offlineUser";
+        span.textContent = `${nick} — ${nicknameMap[nick].count} device(s)`;
+        userList.appendChild(span);
+        userList.appendChild(document.createElement("br"));
+
+        nicknameMap[nick].uids.forEach(uid=>{
+          const btn = document.createElement("button");
+          btn.textContent = "Ban";
+          btn.onclick = ()=>{if(confirm(`Ban ${nick}?`)){db.ref("bans/"+uid).set({name:nick});db.ref("users/"+uid).remove();}};
+          banList.appendChild(document.createTextNode(nick+" "));
+          banList.appendChild(btn);
+          banList.appendChild(document.createElement("br"));
+        });
+      }
+
+      // Unban
       bansSnap.forEach(b=>{
-        const row=document.createElement("div");
-        row.style.display="flex"; row.style.justifyContent="space-between"; row.style.alignItems="center";
-        const nameSpan=document.createElement("span"); nameSpan.textContent=b.val().name;
-        const btn=document.createElement("button"); btn.textContent="Unban"; btn.onclick=()=>{if(confirm(`Unban ${b.val().name}?`)) db.ref("bans/"+b.key).remove();};
-        row.appendChild(nameSpan); row.appendChild(btn);
-        unbanList.appendChild(row);
+        const btn = document.createElement("button");
+        btn.textContent="Unban";
+        btn.onclick=()=>{if(confirm(`Unban ${b.val().name}?`)) db.ref("bans/"+b.key).remove();};
+        unbanList.appendChild(document.createTextNode(b.val().name+" "));
+        unbanList.appendChild(btn);
+        unbanList.appendChild(document.createElement("br"));
       });
     }
+
     let usersData=null,bansData=null;
-    db.ref("users").on("value",s=>{usersData=s;if(bansData) renderAdmin(usersData,bansData);});
-    db.ref("bans").on("value",s=>{bansData=s;if(usersData) renderAdmin(usersData,bansData);});
-    setInterval(()=>{if(usersData && bansData) renderAdmin(usersData,bansData);},5000);
+    function refreshAdmin(){
+      db.ref("users").once("value",s=>{usersData=s;if(bansData) renderAdmin(usersData,bansData);});
+      db.ref("bans").once("value",s=>{bansData=s;if(usersData) renderAdmin(usersData,bansData);});
+    }
+    refreshAdmin();
+    setInterval(refreshAdmin,5000); // refresh every 5 seconds
   }
 
   window.sendMsg=function(){
@@ -223,44 +234,33 @@ function clearChat(){
   openChat();
 }
 
-// ===== Document =====
-function openDoc(){
-  content.innerHTML=`<h2>Document</h2>
-  <button onclick="editDoc()">Edit</button>
-  <button onclick="premiumDoc()">Premium</button>
-  <div id="editor" contenteditable="false"></div>`;
-  db.ref("document/main").on("value", snap=>{editor.innerHTML = snap.val() || "";});
-}
-function editDoc(){
-  if(prompt("Enter code to edit:")!=="1234") return alert("Wrong code");
-  editor.contentEditable="true";
-}
-function premiumDoc(){
-  if(prompt("Enter premium code:")!=="12345678h") return alert("Wrong code");
-  content.innerHTML=`<h2>Premium Document</h2><button onclick="editPremium()">Edit</button><div id="editor" contenteditable="false"></div>`;
-  db.ref("document/premium").on("value", snap=>{editor.innerHTML = snap.val() || "";});
-}
-function editPremium(){
-  if(prompt("Enter code to edit premium:")!=="1234") return alert("Wrong code");
-  editor.contentEditable="true";
-}
-
-// Save document every 2s
-setInterval(()=>{
-  if(document.getElementById("editor") && document.getElementById("editor").isContentEditable)
-    db.ref("document/main").set(document.getElementById("editor").innerHTML);
-},2000);
-
-// ===== YT/Games/Proxy =====
+// ===== YT/GAMES/PROXY =====
 function openYT(){content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame" allowfullscreen></iframe>`;}
-function loadYT(){
-  let u=ytInput.value,id="";
-  if(u.includes("watch?v=")) id=u.split("watch?v=")[1].split("&")[0];
-  if(u.includes("youtu.be/")) id=u.split("youtu.be/")[1];
-  ytFrame.src=`https://www.youtube.com/embed/${id}?rel=0&autoplay=0`;
-}
+function loadYT(){let u=ytInput.value,id="";if(u.includes("watch?v=")) id=u.split("watch?v=")[1].split("&")[0];if(u.includes("youtu.be/")) id=u.split("youtu.be/")[1];ytFrame.src="https://www.youtube.com/embed/"+id;}
 function openGames(){window.open("game.html","_blank");}
 function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
+
+// ===== DOCUMENT =====
+function openDoc(){
+  content.innerHTML=`<h2>Document</h2>
+  <button onclick="editDoc(false)">Edit (1234)</button>
+  <button onclick="editDoc(true)">Premium (12345678h)</button>
+  <div id="editor" contenteditable="false"></div>`;
+  loadDocument(false);
+}
+async function loadDocument(isPremium){
+  const docRef = db.ref(isPremium?"premiumDoc":"doc");
+  const snap = await docRef.once("value");
+  document.getElementById("editor").innerHTML = snap.val() || "";
+}
+function editDoc(isPremium){
+  const code = isPremium?"12345678h":"1234";
+  if(prompt("Enter edit code:")!==code) return alert("Wrong code");
+  const editor = document.getElementById("editor");
+  editor.contentEditable = "true";
+  editor.focus();
+  editor.addEventListener("input",()=>{db.ref(isPremium?"premiumDoc":"doc").set(editor.innerHTML);});
+}
 
 // ===== TIME =====
 function formatTime(ts){
