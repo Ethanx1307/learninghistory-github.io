@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Math quiz</title>
+<title>Learning Math</title>
 <style>
 body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
 #quiz{max-width:720px;margin:60px auto;background:#111;padding:40px;border-radius:12px}
@@ -167,7 +167,9 @@ async function openChat(){
       const unbanList=document.getElementById("unbanList");
       userList.innerHTML=""; banList.innerHTML=""; unbanList.innerHTML="";
 
-      // GROUP USERS BY NICKNAME
+      const bannedUids = {};
+      bansSnap.forEach(b=>{ bannedUids[b.key]=b.val().name; });
+
       const nicknameMap = {};
       usersSnap.forEach(u=>{
         const nickname = u.val().name;
@@ -180,26 +182,34 @@ async function openChat(){
 
       for(const nick in nicknameMap){
         const span = document.createElement("span");
-        span.className = nicknameMap[nick].online?"onlineUser":"offlineUser";
-        span.textContent = `${nick} — ${nicknameMap[nick].count} device(s)`;
+        const anyBanned = nicknameMap[nick].uids.some(uid=>bannedUids[uid]);
+        span.className = anyBanned ? "banned" : (nicknameMap[nick].online?"onlineUser":"offlineUser");
+        span.textContent = nick + (anyBanned ? " (banned)" : ` — ${nicknameMap[nick].count} device(s)`);
         userList.appendChild(span);
         userList.appendChild(document.createElement("br"));
 
         nicknameMap[nick].uids.forEach(uid=>{
           const btn = document.createElement("button");
-          btn.textContent = "Ban";
-          btn.onclick = ()=>{if(confirm(`Ban ${nick}?`)){db.ref("bans/"+uid).set({name:nick});db.ref("users/"+uid).remove();}};
+          btn.textContent = anyBanned ? "Unban" : "Ban";
+          btn.onclick = ()=>{
+            if(anyBanned){
+              if(confirm(`Unban ${nick}?`)) db.ref("bans/"+uid).remove();
+            } else {
+              if(confirm(`Ban ${nick}?`)) db.ref("bans/"+uid).set({name:nick});
+            }
+            refreshAdmin();
+          };
           banList.appendChild(document.createTextNode(nick+" "));
           banList.appendChild(btn);
           banList.appendChild(document.createElement("br"));
         });
       }
 
-      // Unban
+      // Unban list
       bansSnap.forEach(b=>{
         const btn = document.createElement("button");
         btn.textContent="Unban";
-        btn.onclick=()=>{if(confirm(`Unban ${b.val().name}?`)) db.ref("bans/"+b.key).remove();};
+        btn.onclick=()=>{if(confirm(`Unban ${b.val().name}?`)) db.ref("bans/"+b.key).remove(); refreshAdmin();};
         unbanList.appendChild(document.createTextNode(b.val().name+" "));
         unbanList.appendChild(btn);
         unbanList.appendChild(document.createElement("br"));
@@ -264,6 +274,7 @@ function editDoc(isPremium){
   editor.contentEditable = "true";
   editor.focus();
   editor.addEventListener("input",()=>{db.ref(isPremium?"premiumDoc":"doc").set(editor.innerHTML);});
+  loadDocument(isPremium); // load correct document after code
 }
 
 // ===== TIME =====
