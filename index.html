@@ -17,11 +17,11 @@ body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
 .msg{margin-bottom:10px}
 .time{font-size:11px;color:#aaa}
 .name{font-weight:bold;color:#57a4ff}
-input,button{padding:8px;margin-top:5px;border-radius:5px;border:none}
+input,button,textarea{padding:8px;margin-top:5px;border-radius:5px;border:none;font-family:Arial}
 input{width:70%}
 button{background:#5865f2;color:white;cursor:pointer}
 button:hover{opacity:0.85}
-#editor{background:#1e1e2f;border-radius:8px;padding:16px;min-height:200px;color:white}
+#editor,#premiumEditor{background:#1e1e2f;border-radius:8px;padding:16px;min-height:400px;width:100%;box-sizing:border-box;resize:none;color:white;font-family:Arial;font-size:16px}
 iframe{width:100%;height:300px;border-radius:8px;border:none}
 .adminBox{background:#1e1e2f;padding:10px;border-radius:8px;margin-top:10px;display:flex;gap:20px}
 .adminColumn{flex:1;background:#1e1e2f;padding:10px;border-radius:8px}
@@ -55,7 +55,7 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-// Firebase config
+// ===== FIREBASE SETUP =====
 const firebaseConfig={
   apiKey:"AIzaSyDoQ1wN5gdpe4WRhM8WU-DaQn239mj83gA",
   authDomain:"learning-history-1bfd5.firebaseapp.com",
@@ -69,7 +69,7 @@ firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 let isAdmin=false;
 
-// ===== QUIZ (UNCHANGED) =====
+// ===== QUIZ =====
 let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"],["-5+12","7"],["6²÷3","12"],["Area 5×4","20"],["Perimeter square 6","24"],["2x=18","9"]];
 questions.sort(()=>Math.random()-0.5);
 let i=0,score=0;
@@ -87,20 +87,18 @@ function finishQ(){quiz.innerHTML=`<h1>Score</h1><h2>${score}/${questions.length
 function unlockApp(){quiz.style.display="none";app.style.display="block";openChat();}
 a.addEventListener("keydown", e => { if(e.key === "Enter") submitQ(); });
 
-// ===== CHAT + ADMIN (UNCHANGED) =====
-let userId=localStorage.getItem("userId");
-if(!userId){userId=Date.now().toString();localStorage.setItem("userId",userId);}
+// ===== USER & CHAT =====
+let userId=localStorage.getItem("userId")||Date.now().toString(); localStorage.setItem("userId",userId);
 let nickname=localStorage.getItem("nickname");
 let changedName=false;
+
 async function checkBanAndNickname(){
   const snapshot = await db.ref().once("value");
   const bans = snapshot.val()?.bans || {};
   if(bans[userId]){document.body.innerHTML="<h1 class='banned'>You are banned</h1>"; return false;}
   if(!nickname){
     while(true){
-      let n=prompt("Choose your nickname:")||"Anonymous";
-      n=n.trim();
-      if(!n) continue;
+      let n=prompt("Choose your nickname:")||"Anonymous"; n=n.trim(); if(!n) continue;
       const users=snapshot.val()?.users||{};
       let taken=false;
       for(const k in users){if(users[k].name.toLowerCase()===n.toLowerCase()){taken=true;break;}}
@@ -111,61 +109,118 @@ async function checkBanAndNickname(){
   }
   return true;
 }
-async function openChat(){ /*...unchanged chat code...*/ }
 
-// ===== DOCUMENT / PREMIUM =====
-function openDoc(){
-  content.innerHTML=`
-    <h2>Document</h2>
-    <textarea id="editor" readonly></textarea><br>
-    <button onclick="editDoc()">Edit</button>
-    <button onclick="premiumDoc()">Premium</button>
-  `;
-  // Load saved content
-  db.ref("documents/normal").once("value").then(snap=>{
-    document.getElementById("editor").value = snap.val()?.content || "";
+async function openChat(){
+  const allowed = await checkBanAndNickname();
+  if(!allowed) return;
+  db.ref("bans/"+userId).on("value",snap=>{if(snap.val()) document.body.innerHTML="<h1 class='banned'>You are banned</h1>";});
+
+  content.innerHTML=`<h2>Chat</h2>
+  <button onclick="changeName()">Change Nickname</button>
+  <button onclick="clearChat()">Clear Chat</button>
+  <div id="chatBox"></div>
+  <input id="msgInput"><button onclick="sendMsg()">Send</button>
+  ${isAdmin?'<div class="adminBox"><div class="adminColumn"><h3>Users</h3><div id="userList"></div></div><div class="adminColumn"><h3>Ban</h3><div id="banList"></div></div><div class="adminColumn"><h3>Unban</h3><div id="unbanList"></div></div></div>':""}`;
+
+  const chatBox=document.getElementById("chatBox");
+  const msgInput=document.getElementById("msgInput");
+  db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
+  msgInput.addEventListener("keydown", e=>{if(e.key==="Enter") sendMsg();});
+
+  db.ref("chat").on("child_added",snap=>{
+    const m=snap.val();
+    db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()});
+    const div=document.createElement("div");
+    div.className="msg";
+    div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">${m.name}</span>: ${m.text}`;
+    chatBox.appendChild(div);
+    chatBox.scrollTop=chatBox.scrollHeight;
   });
+
+  if(isAdmin){
+    function renderAdmin(usersSnap,bansSnap){
+      const userList=document.getElementById("userList");
+      const banList=document.getElementById("banList");
+      const unbanList=document.getElementById("unbanList");
+      userList.innerHTML=""; banList.innerHTML=""; unbanList.innerHTML="";
+      usersSnap.forEach(u=>{
+        const online=(Date.now()-u.val().lastSeen)<60000;
+        const span=document.createElement("span");
+        span.className=online?"onlineUser":"offlineUser"; span.textContent=u.val().name;
+        userList.appendChild(span); userList.appendChild(document.createElement("br"));
+        const btn=document.createElement("button"); btn.textContent="Ban";
+        btn.onclick=()=>{if(confirm(`Ban ${u.val().name}?`)){db.ref("bans/"+u.key).set({name:u.val().name});db.ref("users/"+u.key).remove();}};
+        banList.appendChild(document.createTextNode(u.val().name+" ")); banList.appendChild(btn); banList.appendChild(document.createElement("br"));
+      });
+      bansSnap.forEach(b=>{
+        const btn=document.createElement("button"); btn.textContent="Unban";
+        btn.onclick=()=>{if(confirm(`Unban ${b.val().name}?`)) db.ref("bans/"+b.key).remove();};
+        unbanList.appendChild(document.createTextNode(b.val().name+" ")); unbanList.appendChild(btn); unbanList.appendChild(document.createElement("br"));
+      });
+    }
+    let usersData=null,bansData=null;
+    db.ref("users").on("value",s=>{usersData=s;if(bansData) renderAdmin(usersData,bansData);});
+    db.ref("bans").on("value",s=>{bansData=s;if(usersData) renderAdmin(usersData,bansData);});
+  }
+
+  window.sendMsg=function(){if(!msgInput.value.trim()) return; db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()}); db.ref("chat").push({name:nickname,text:msgInput.value,time:Date.now()}); msgInput.value="";}
 }
-function editDoc(){
-  let code=prompt("Enter code to edit document:");
-  if(code==="1234"){
-    const editor=document.getElementById("editor");
-    editor.removeAttribute("readonly");
-    editor.focus();
-    editor.addEventListener("input", ()=>{db.ref("documents/normal").set({content:editor.value});});
-  }else{alert("Wrong code");}
-}
-function premiumDoc(){
-  let code=prompt("Enter code for premium document:");
-  if(code==="12345678h"){
-    content.innerHTML=`
-      <h2>Premium Document</h2>
-      <textarea id="editorPremium" readonly></textarea><br>
-      <button onclick="editPremium()">Edit Premium</button>
-    `;
-    db.ref("documents/premium").once("value").then(snap=>{
-      document.getElementById("editorPremium").value = snap.val()?.content || "";
-    });
-  }else{alert("Wrong code");}
-}
-function editPremium(){
-  let code=prompt("Enter code to edit premium document:");
-  if(code==="1234"){
-    const editor=document.getElementById("editorPremium");
-    editor.removeAttribute("readonly");
-    editor.focus();
-    editor.addEventListener("input", ()=>{db.ref("documents/premium").set({content:editor.value});});
-  }else{alert("Wrong code");}
-}
+
+// ===== BAN / UNBAN =====
+function changeName(){if(changedName){alert("Already changed once"); return;} if(prompt("Enter code 4293 to change username")!=="4293") return alert("Wrong code"); let n=prompt("Enter new nickname:"); if(!n) return; n=n.trim(); nickname=n; localStorage.setItem("nickname",nickname); db.ref("users/"+userId).update({name:nickname,lastSeen:Date.now()}); changedName=true;}
+function clearChat(){if(prompt("Enter code to clear chat:")!=="Ethandagod") return alert("Wrong code"); db.ref("chat").remove(); openChat();}
 
 // ===== YT/GAMES/PROXY =====
-function openYT(){content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame"></iframe>`;}
-function loadYT(){let u=ytInput.value,id="";if(u.includes("watch?v=")) id=u.split("watch?v=")[1].split("&")[0];if(u.includes("youtu.be/")) id=u.split("youtu.be/")[1];ytFrame.src="https://www.youtube.com/embed/"+id;}
+function openYT(){content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame" allowfullscreen></iframe>`;}
+function loadYT(){let u=ytInput.value,id=""; if(u.includes("watch?v=")) id=u.split("watch?v=")[1].split("&")[0]; if(u.includes("youtu.be/")) id=u.split("youtu.be/")[1]; ytFrame.src=`https://www.youtube.com/embed/${id}?rel=0`; ytFrame.width="1920"; ytFrame.height="1080";}
 function openGames(){window.open("game.html","_blank");}
 function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
 
+// ===== DOCUMENT =====
+function openDoc(){
+  content.innerHTML=`<h2>Document</h2>
+  <button onclick="editDoc()">Edit</button>
+  <button onclick="premiumDoc()">Premium</button>
+  <textarea id="editor" readonly></textarea>`;
+
+  const editor = document.getElementById("editor");
+  db.ref("doc").on("value",snap=>{editor.value=snap.val()||"";});
+}
+
+function editDoc(){
+  if(prompt("Enter code 1234 to edit")!=="1234") return alert("Wrong code");
+  const editor = document.getElementById("editor");
+  editor.removeAttribute("readonly");
+  editor.focus();
+  editor.addEventListener("input",()=>{db.ref("doc").set(editor.value);});
+}
+
+function premiumDoc(){
+  if(prompt("Enter premium code 12345678h")!=="12345678h") return alert("Wrong code");
+  content.innerHTML=`<h2>Premium Document</h2>
+  <button onclick="editPremium()">Edit</button>
+  <textarea id="premiumEditor" readonly></textarea>`;
+  const pEditor = document.getElementById("premiumEditor");
+  db.ref("premiumDoc").on("value",snap=>{pEditor.value=snap.val()||"";});
+}
+
+function editPremium(){
+  if(prompt("Enter code 1234 to edit")!=="1234") return alert("Wrong code");
+  const pEditor = document.getElementById("premiumEditor");
+  pEditor.removeAttribute("readonly");
+  pEditor.focus();
+  pEditor.addEventListener("input",()=>{db.ref("premiumDoc").set(pEditor.value);});
+}
+
 // ===== TIME =====
-function formatTime(ts){const d=new Date(ts),t=new Date(),y=new Date();y.setDate(t.getDate()-1);let h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");let ap=d.getHours()>=12?"PM":"AM";if(d.toDateString()===t.toDateString()) return `Today ${h}:${m}${ap}`;if(d.toDateString()===y.toDateString()) return `Yesterday ${h}:${m}${ap}`;return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;}
+function formatTime(ts){
+  const d=new Date(ts),t=new Date(),y=new Date();y.setDate(t.getDate()-1);
+  let h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
+  let ap=d.getHours()>=12?"PM":"AM";
+  if(d.toDateString()===t.toDateString()) return `Today ${h}:${m}${ap}`;
+  if(d.toDateString()===y.toDateString()) return `Yesterday ${h}:${m}${ap}`;
+  return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear()} ${h}:${m}${ap}`;
+}
 </script>
 </body>
 </html>
