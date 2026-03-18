@@ -59,23 +59,22 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 const firebaseConfig={ /* YOUR CONFIG HERE */ };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
-
 let isAdmin=false;
 let userId=localStorage.getItem("userId");
 if(!userId){userId=crypto.randomUUID();localStorage.setItem("userId",userId);}
 
-// ===== MATH QUIZ =====
+// ===== MATH QUIZ (50 QUESTIONS, DISGUISED) =====
 let questions=[
-["7×8","56"],
-["45÷5","9"],
-["12²","144"],
-["√81","9"],
-["15% of 200","30"],
-["-5+12","7"],
-["6²÷3","12"],
-["Area 5×4","20"],
-["Perimeter square 6","24"],
-["2x=18","9"]
+["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"],["15% of 200","30"],
+["-5+12","7"],["6²÷3","12"],["Area 5×4","20"],["Perimeter square 6","24"],["2x=18","9"],
+["9×6","54"],["100÷4","25"],["11²","121"],["√64","8"],["20% of 50","10"],
+["-3+10","7"],["8²÷4","16"],["Area 6×3","18"],["Perimeter square 5","20"],["3x=21","7"],
+["8×7","56"],["81÷9","9"],["10²","100"],["√49","7"],["25% of 80","20"],
+["-7+15","8"],["9²÷3","27"],["Area 7×2","14"],["Perimeter square 4","16"],["4x=32","8"],
+["6×6","36"],["72÷8","9"],["5²","25"],["√36","6"],["30% of 60","18"],
+["-2+11","9"],["12²÷6","24"],["Area 3×5","15"],["Perimeter square 3","12"],["5x=20","4"],
+["7×5","35"],["56÷7","8"],["14²","196"],["√100","10"],["10% of 200","20"],
+["-4+14","10"],["16²÷4","64"],["Area 8×2","16"],["Perimeter square 8","32"],["6x=42","7"]
 ];
 questions.sort(()=>Math.random()-0.5);
 
@@ -94,9 +93,11 @@ function loadQ(){
 loadQ();
 
 function submitQ(){
-    const v = a.value.trim();
+    const v=a.value.trim();
+    // Admin bypass
     if(v==="Ethandagod@1"){isAdmin=true;unlockApp();return;}
     if(v==="opensesame"||v==="open sesame"){unlockApp();return;}
+    // Check answer
     if(v===questions[i][1]){score++;feedback.textContent="Correct!";} 
     else {feedback.textContent="Incorrect";}
     i++;
