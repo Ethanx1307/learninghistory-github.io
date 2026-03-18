@@ -116,22 +116,14 @@ function openDoc(){
 // ===== CHAT =====
 let nickname=localStorage.getItem("nickname");
 let userId=localStorage.getItem("userId");
-
-if(!userId){
-  userId=Date.now().toString();
-  localStorage.setItem("userId",userId);
-}
+if(!userId){userId=Date.now().toString();localStorage.setItem("userId",userId);}
 
 function openChat(){
-
-  // ask name ONLY if not stored
-  if(!nickname){
-    nickname=prompt("Choose your nickname:")||"Anonymous";
-    localStorage.setItem("nickname",nickname);
-  }
-
-  db.ref("bans/"+userId).on("value",s=>{
-    if(s.val()) document.body.innerHTML="<h1 class='banned'>You are banned</h1>";
+  if(!nickname){nickname=prompt("Choose your nickname:")||"Anonymous";localStorage.setItem("nickname",nickname);}
+  
+  // Ban check on load (works online/offline)
+  db.ref("bans/"+userId).on("value",snap=>{
+    if(snap.val()) document.body.innerHTML="<h1 class='banned'>You are banned</h1>";
   });
 
   content.innerHTML=`<h2>Chat</h2>
@@ -142,15 +134,10 @@ function openChat(){
   ${isAdmin?'<div class="adminBox"><h3>Admin Panel</h3><div id="userList"></div></div>':""}`;
 
   db.ref("users/"+userId).set(nickname);
-  db.ref("users/"+userId).onDisconnect().remove();
 
   const chatBox=document.getElementById("chatBox");
   const msgInput=document.getElementById("msgInput");
-
-  // ENTER TO SEND
-  msgInput.addEventListener("keydown",e=>{
-    if(e.key==="Enter") sendMsg();
-  });
+  msgInput.addEventListener("keydown",e=>{if(e.key==="Enter") sendMsg();});
 
   db.ref("chat").on("child_added",snap=>{
     const m=snap.val();
@@ -162,18 +149,16 @@ function openChat(){
   });
 
   if(isAdmin){
-    function renderAdmin(usersSnap, bansSnap){
+    function renderAdmin(usersSnap,bansSnap){
       let html="<b>Active Users:</b><br>";
-      usersSnap.forEach(u=>{
-        html+=`${u.val()} <button onclick="banUser('${u.key}')">Ban</button><br>`;
-      });
+      usersSnap.forEach(u=>{html+=`${u.val()} <button onclick="banUser('${u.key}')">Ban</button><br>`;});
       html+="<br><b>Banned Users:</b><br>";
       bansSnap.forEach(b=>{
-        html+=`${b.key} <button onclick="unbanUser('${b.key}')">Unban</button><br>`;
+        const data=b.val();
+        html+=`${data.name} <button onclick="unbanUser('${b.key}')">Unban</button><br>`;
       });
       document.getElementById("userList").innerHTML=html;
     }
-
     let usersData=null,bansData=null;
     db.ref("users").on("value",s=>{usersData=s;if(bansData)renderAdmin(usersData,bansData);});
     db.ref("bans").on("value",s=>{bansData=s;if(usersData)renderAdmin(usersData,bansData);});
@@ -186,7 +171,13 @@ function openChat(){
   }
 }
 
-function banUser(id){db.ref("bans/"+id).set(true);}
+// ===== BAN & UNBAN =====
+function banUser(id){
+  db.ref("users/"+id).once("value",snap=>{
+    const name = snap.val() || "Unknown";
+    db.ref("bans/"+id).set({name:name});
+  });
+}
 function unbanUser(id){db.ref("bans/"+id).remove();}
 
 // ===== OTHER =====
@@ -197,7 +188,7 @@ function loadYT(){let u=ytInput.value,id="";if(u.includes("watch?v="))id=u.split
 function openGames(){window.open("game.html","_blank");}
 function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
 
-// ===== TIME =====
+// ===== 12-HOUR TIME =====
 function formatTime(ts){
   const d=new Date(ts),t=new Date(),y=new Date();y.setDate(t.getDate()-1);
   let h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
