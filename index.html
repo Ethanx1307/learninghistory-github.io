@@ -35,7 +35,7 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 <section id="quiz">
 <h1>Year 8 Maths Quiz</h1>
 <p id="q"></p>
-<input id="a">
+<input id="a" placeholder="Type answer here">
 <button onclick="submitQ()">Submit</button>
 <div id="feedback"></div>
 <p>Question <span id="n"></span>/50</p>
@@ -56,30 +56,75 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
 
-const firebaseConfig={ /* SAME AS YOURS */ };
+const firebaseConfig={ /* YOUR CONFIG HERE */ };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
 let isAdmin=false;
 
-// USER ID (permanent)
+// USER ID
 let userId=localStorage.getItem("userId");
 if(!userId){userId=crypto.randomUUID();localStorage.setItem("userId",userId);}
 
-// QUIZ
-let questions=[["7×8","56"],["45÷5","9"],["12²","144"],["√81","9"]];
-let i=0;
-function loadQ(){q.textContent=questions[i][0];n.textContent=i+1;}
+// ===== MATH QUIZ FIXED =====
+let questions=[
+["7×8","56"],
+["45÷5","9"],
+["12²","144"],
+["√81","9"],
+["15% of 200","30"],
+["-5+12","7"],
+["6²÷3","12"],
+["Area 5×4","20"],
+["Perimeter square 6","24"],
+["2x=18","9"]
+];
+questions.sort(()=>Math.random()-0.5);
+
+let i=0, score=0;
+const q=document.getElementById("q");
+const a=document.getElementById("a");
+const feedback=document.getElementById("feedback");
+const n=document.getElementById("n");
+
+function loadQ(){
+    q.textContent = questions[i][0];
+    n.textContent = i+1;
+    a.value = "";
+    feedback.textContent = "";
+}
 loadQ();
 
 function submitQ(){
-let v=a.value.trim();
-if(v==="Ethandagod@1"){isAdmin=true;unlockApp();return;}
-if(v==="opensesame"||v==="open sesame"){unlockApp();return;}
-i++;if(i<questions.length) loadQ(); else unlockApp();
+    const v = a.value.trim();
+
+    if(v==="Ethandagod@1"){isAdmin=true;unlockApp();return;}
+    if(v==="opensesame"||v==="open sesame"){unlockApp();return;}
+
+    if(v===questions[i][1]){
+        score++;
+        feedback.textContent="Correct!";
+    } else {
+        feedback.textContent="Incorrect";
+    }
+
+    i++;
+    if(i<questions.length){
+        setTimeout(loadQ,400);
+    } else {
+        finishQ();
+    }
 }
 
-function unlockApp(){quiz.style.display="none";app.style.display="block";openChat();}
+function finishQ(){
+    quiz.innerHTML=`<h1>Score</h1>
+    <h2>${score}/${questions.length}</h2>
+    <button onclick="location.reload()">Retry</button>`;
+}
+
+a.addEventListener("keydown", e=>{if(e.key==="Enter") submitQ();});
+
+// ===== APP / DOCUMENT / CHAT / OTHER FUNCTIONS =====
 
 // DOCUMENT
 function openDoc(){
@@ -94,28 +139,26 @@ docArea.innerHTML=`<h3>Normal</h3>
 <div id="editor" contenteditable="false">${localStorage.getItem("normalDoc")||"Empty..."}</div>`;
 }
 function unlockPremium(){
-if(prompt("Enter premium code")!=="12345678h") return;
+if(prompt("Enter premium code")!=="12345678h") return alert("Wrong code");
 docArea.innerHTML=`<h3>⭐ Premium</h3>
 <button onclick="editDoc('premium')">Edit</button>
 <div id="editor" contenteditable="false">${localStorage.getItem("premiumDoc")||"Empty..."}</div>`;
 }
 function editDoc(type){
-if(prompt("Enter edit code")!=="1234") return;
+if(prompt("Enter edit code")!=="1234") return alert("Wrong code");
 let editor=document.getElementById("editor");
 editor.contentEditable=true;
-editor.oninput=()=>{
-localStorage.setItem(type==="normal"?"normalDoc":"premiumDoc",editor.innerHTML);
-};
+editor.oninput=()=>{localStorage.setItem(type==="normal"?"normalDoc":"premiumDoc",editor.innerHTML);};
 }
 
 // CHAT
 let nickname=localStorage.getItem("nickname");
 let changedName=false;
+let chatListener=null;
 
 async function getNickname(){
 const banSnap=await db.ref("bans/"+userId).get();
 if(banSnap.exists()){document.body.innerHTML="<h1 class='banned'>You are banned</h1>";return null;}
-
 while(!nickname){
 let n=prompt("Choose nickname")?.trim();
 if(!n) continue;
@@ -125,15 +168,11 @@ localStorage.setItem("nickname",nickname);
 return nickname;
 }
 
-let chatListener=null;
-
 async function openChat(){
 nickname=await getNickname();
 if(!nickname) return;
 
-db.ref("bans/"+userId).on("value",snap=>{
-if(snap.val()) document.body.innerHTML="<h1 class='banned'>You are banned</h1>";
-});
+db.ref("bans/"+userId).on("value",snap=>{if(snap.val()) document.body.innerHTML="<h1 class='banned'>You are banned</h1>";});
 
 content.innerHTML=`<h2>Chat</h2>
 <button onclick="changeName()">Change Nickname</button>
@@ -146,7 +185,6 @@ const chatBox=document.getElementById("chatBox");
 const msgInput=document.getElementById("msgInput");
 
 if(chatListener) db.ref("chat").off("child_added",chatListener);
-
 chatListener=db.ref("chat").on("child_added",snap=>{
 const m=snap.val();
 let div=document.createElement("div");
@@ -162,46 +200,38 @@ db.ref("chat").push({name:nickname,text:msgInput.value,time:Date.now()});
 msgInput.value="";
 };
 
-// ADMIN PANEL
 if(isAdmin){
 db.ref("users").on("value",snap=>{
 let html="<h3>Users</h3>";
-snap.forEach(u=>{
-html+=`${u.val().name} <button onclick="banUser('${u.key}','${u.val().name}')">Ban</button><br>`;
-});
+snap.forEach(u=>{html+=`${u.val().name} <button onclick="banUser('${u.key}','${u.val().name}')">Ban</button><br>`;});
 document.getElementById("adminPanel").innerHTML=html;
 });
 }
-
 db.ref("users/"+userId).set({name:nickname,lastSeen:Date.now()});
 }
 
-// ADMIN ACTIONS
+// ADMIN
 function banUser(id,name){
 if(confirm("Ban "+name+"?")){
 db.ref("bans/"+id).set({name:name});
 db.ref("users/"+id).remove();
 }
 }
-
-// EXTRA FEATURES
 function changeName(){
 if(changedName) return alert("Already changed once");
 if(prompt("Enter code")!=="4293") return alert("Wrong code");
-let n=prompt("New nickname");
-if(!n) return;
+let n=prompt("New nickname"); if(!n) return;
 nickname=n.trim();
 localStorage.setItem("nickname",nickname);
 changedName=true;
 }
-
 function clearChat(){
 if(prompt("Enter code")!=="Ethandagod") return alert("Wrong code");
 db.ref("chat").remove();
 openChat();
 }
 
-// OTHER
+// YT / GAMES / PROXY
 function openYT(){content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame"></iframe>`;}
 function loadYT(){
 let u=ytInput.value,id="";
@@ -214,8 +244,7 @@ function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
 
 // TIME
 function formatTime(ts){
-const d=new Date(ts);
-let h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
+const d=new Date(ts),h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
 let ap=d.getHours()>=12?"PM":"AM";
 return `${h}:${m}${ap}`;
 }
