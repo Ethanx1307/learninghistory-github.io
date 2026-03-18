@@ -55,18 +55,16 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-
+// Firebase config
 const firebaseConfig={ /* YOUR CONFIG HERE */ };
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
 
 let isAdmin=false;
-
-// USER ID
 let userId=localStorage.getItem("userId");
 if(!userId){userId=crypto.randomUUID();localStorage.setItem("userId",userId);}
 
-// ===== MATH QUIZ FIXED =====
+// ===== MATH QUIZ =====
 let questions=[
 ["7×8","56"],
 ["45÷5","9"],
@@ -97,23 +95,13 @@ loadQ();
 
 function submitQ(){
     const v = a.value.trim();
-
     if(v==="Ethandagod@1"){isAdmin=true;unlockApp();return;}
     if(v==="opensesame"||v==="open sesame"){unlockApp();return;}
-
-    if(v===questions[i][1]){
-        score++;
-        feedback.textContent="Correct!";
-    } else {
-        feedback.textContent="Incorrect";
-    }
-
+    if(v===questions[i][1]){score++;feedback.textContent="Correct!";} 
+    else {feedback.textContent="Incorrect";}
     i++;
-    if(i<questions.length){
-        setTimeout(loadQ,400);
-    } else {
-        finishQ();
-    }
+    if(i<questions.length){setTimeout(loadQ,400);} 
+    else {finishQ();}
 }
 
 function finishQ(){
@@ -124,9 +112,7 @@ function finishQ(){
 
 a.addEventListener("keydown", e=>{if(e.key==="Enter") submitQ();});
 
-// ===== APP / DOCUMENT / CHAT / OTHER FUNCTIONS =====
-
-// DOCUMENT
+// ===== DOCUMENT =====
 function openDoc(){
 content.innerHTML=`<h2>📄 Document</h2>
 <button onclick="openNormalDoc()">Normal</button>
@@ -151,7 +137,7 @@ editor.contentEditable=true;
 editor.oninput=()=>{localStorage.setItem(type==="normal"?"normalDoc":"premiumDoc",editor.innerHTML);};
 }
 
-// CHAT
+// ===== CHAT =====
 let nickname=localStorage.getItem("nickname");
 let changedName=false;
 let chatListener=null;
@@ -171,19 +157,15 @@ return nickname;
 async function openChat(){
 nickname=await getNickname();
 if(!nickname) return;
-
 db.ref("bans/"+userId).on("value",snap=>{if(snap.val()) document.body.innerHTML="<h1 class='banned'>You are banned</h1>";});
-
 content.innerHTML=`<h2>Chat</h2>
 <button onclick="changeName()">Change Nickname</button>
 <button onclick="clearChat()">Clear Chat</button>
 <div id="chatBox"></div>
 <input id="msgInput"><button onclick="sendMsg()">Send</button>
 ${isAdmin?'<div id="adminPanel"></div>':""}`;
-
 const chatBox=document.getElementById("chatBox");
 const msgInput=document.getElementById("msgInput");
-
 if(chatListener) db.ref("chat").off("child_added",chatListener);
 chatListener=db.ref("chat").on("child_added",snap=>{
 const m=snap.val();
@@ -193,13 +175,11 @@ div.innerHTML=`<div class="time">${formatTime(m.time)}</div><span class="name">$
 chatBox.appendChild(div);
 chatBox.scrollTop=chatBox.scrollHeight;
 });
-
 window.sendMsg=function(){
 if(!msgInput.value.trim()) return;
 db.ref("chat").push({name:nickname,text:msgInput.value,time:Date.now()});
 msgInput.value="";
 };
-
 if(isAdmin){
 db.ref("users").on("value",snap=>{
 let html="<h3>Users</h3>";
@@ -210,7 +190,7 @@ document.getElementById("adminPanel").innerHTML=html;
 db.ref("users/"+userId).set({name:nickname,lastSeen:Date.now()});
 }
 
-// ADMIN
+// ===== ADMIN =====
 function banUser(id,name){
 if(confirm("Ban "+name+"?")){
 db.ref("bans/"+id).set({name:name});
@@ -231,24 +211,21 @@ db.ref("chat").remove();
 openChat();
 }
 
-// YT / GAMES / PROXY
+// ===== YT / GAMES / PROXY =====
 function openYT(){content.innerHTML=`<input id="ytInput"><button onclick="loadYT()">Load</button><iframe id="ytFrame"></iframe>`;}
-function loadYT(){
-let u=ytInput.value,id="";
-if(u.includes("watch?v=")) id=u.split("watch?v=")[1].split("&")[0];
-if(u.includes("youtu.be/")) id=u.split("youtu.be/")[1];
-ytFrame.src="https://www.youtube.com/embed/"+id;
-}
+function loadYT(){let u=ytInput.value,id="";if(u.includes("watch?v=")) id=u.split("watch?v=")[1].split("&")[0];if(u.includes("youtu.be/")) id=u.split("youtu.be/")[1];ytFrame.src="https://www.youtube.com/embed/"+id;}
 function openGames(){window.open("game.html","_blank");}
 function openProxy(){window.open("https://boi.ps-wartau.ch/","_blank");}
 
-// TIME
+// ===== TIME =====
 function formatTime(ts){
 const d=new Date(ts),h=d.getHours()%12||12,m=d.getMinutes().toString().padStart(2,"0");
 let ap=d.getHours()>=12?"PM":"AM";
 return `${h}:${m}${ap}`;
 }
 
+// ===== APP UNLOCK =====
+function unlockApp(){quiz.style.display="none";app.style.display="block";openChat();}
 </script>
 </body>
 </html>
