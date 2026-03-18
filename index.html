@@ -26,7 +26,7 @@ iframe{width:100%;height:300px;border-radius:8px;border:none}
 .adminBox{background:#1e1e2f;padding:10px;border-radius:8px;margin-top:10px}
 .banned{color:#ff6b6b;font-weight:bold}
 .onlineUser{color:#4CAF50;font-weight:bold}
-.bannedUser{color:#ff4d4d;font-weight:bold}
+.offlineUser{color:#ff4d4d;font-weight:bold}
 </style>
 </head>
 <body>
@@ -113,6 +113,7 @@ function openDoc(){
 let userId=localStorage.getItem("userId");
 if(!userId){userId=Date.now().toString();localStorage.setItem("userId",userId);}
 let nickname=localStorage.getItem("nickname");
+let hasChangedName=false;
 
 async function openChat(){
   async function chooseNickname(){
@@ -143,7 +144,7 @@ async function openChat(){
   <button onclick="clearChat()">Clear Chat</button>
   <div id="chatBox"></div>
   <input id="msgInput"><button onclick="sendMsg()">Send</button>
-  ${isAdmin?'<div class="adminBox"><h3>Admin Panel</h3><div id="userList"></div></div>':""}`;
+  ${isAdmin?'<div class="adminBox"><h3>Users:</h3><div id="userList"></div></div>':""}`;
 
   const chatBox=document.getElementById("chatBox");
   const msgInput=document.getElementById("msgInput");
@@ -161,13 +162,15 @@ async function openChat(){
 
   if(isAdmin){
     function renderAdmin(usersSnap,bansSnap){
-      let html="<b>Online Users:</b><br>";
+      let html="";
       usersSnap.forEach(u=>{
-        html+=`<span class="onlineUser">${u.val().name}</span> <button onclick="banUser('${u.key}','${u.val().name}')">Ban</button><br>`;
+        const online = (Date.now() - u.val().lastSeen < 1000*60*5) && !bansSnap.hasChild(u.key); // online if lastSeen <5min and not banned
+        html+=`<span class="${online?'onlineUser':'offlineUser'}">${u.val().name}</span> `;
+        html+=`<button onclick="banUser('${u.key}','${u.val().name}')">Ban</button><br>`;
       });
       html+="<br><b>Banned Users:</b><br>";
       bansSnap.forEach(b=>{
-        html+=`<span class="bannedUser">${b.val().name}</span> <button onclick="unbanUser('${b.key}','${b.val().name}')">Unban</button><br>`;
+        html+=`<span class="offlineUser">${b.val().name}</span> <button onclick="unbanUser('${b.key}','${b.val().name}')">Unban</button><br>`;
       });
       document.getElementById("userList").innerHTML=html;
     }
@@ -183,8 +186,10 @@ async function openChat(){
   }
 }
 
-// ===== CHANGE NAME WITH CHECK =====
+// ===== CHANGE NAME WITH CODE =====
 async function changeName(){
+  if(hasChangedName){return alert("You can only change once.");}
+  if(prompt("Enter code to change username:")!=="4293") return alert("Wrong code");
   while(true){
     let n=prompt("Enter new nickname:");
     if(!n) return;
@@ -199,6 +204,7 @@ async function changeName(){
     nickname=n;
     localStorage.setItem("nickname",nickname);
     db.ref("users/"+userId).set({name:nickname,lastSeen:Date.now()});
+    hasChangedName=true;
     openChat();
     break;
   }
