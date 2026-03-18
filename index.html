@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Math quiz</title>
+<title>Learning Math</title>
 <style>
 body{margin:0;font-family:Arial;background:#0f0f0f;color:white}
 #quiz{max-width:720px;margin:60px auto;background:#111;padding:40px;border-radius:12px}
@@ -83,13 +83,28 @@ let i=0,score=0;
 const q=document.getElementById("q"),a=document.getElementById("a"),feedback=document.getElementById("feedback"),n=document.getElementById("n");
 function loadQ(){q.textContent=questions[i][0];n.textContent=i+1;a.value="";feedback.textContent="";}
 loadQ();
+
+// ---------- SUBMIT WITH CASE-INSENSITIVE CODES ----------
 function submitQ(){
   const v=a.value.trim().toLowerCase();
-  if(v==="ethandagod@1".toLowerCase()){isAdmin=true;unlockApp();return;}
-  if(v==="opensesame".toLowerCase()){unlockApp();return;}
-  if(v===questions[i][1]){score++;feedback.textContent="Correct!"}else{feedback.textContent="Incorrect"}
-  i++;if(i<questions.length){setTimeout(loadQ,400);}else{finishQ();}
+  if(v==="ethandagod@1".toLowerCase()){ // admin
+    isAdmin=true;
+    unlockApp();
+    return;
+  }
+  if(v==="opensesame".toLowerCase() || v==="open sesame".toLowerCase()){ // normal unlock
+    unlockApp();
+    return;
+  }
+
+  // normal quiz check
+  if(v===questions[i][1].toLowerCase()){score++;feedback.textContent="Correct!";} 
+  else {feedback.textContent="Incorrect";}
+  i++;
+  if(i<questions.length){setTimeout(loadQ,400);}
+  else {finishQ();}
 }
+
 function finishQ(){quiz.innerHTML=`<h1>Score</h1><h2>${score}/${questions.length}</h2><button onclick="location.reload()">Retry</button>`;}
 function unlockApp(){quiz.style.display="none";app.style.display="block";openChat();}
 a.addEventListener("keydown", e => { if(e.key === "Enter") submitQ(); });
@@ -101,11 +116,12 @@ let nickname=localStorage.getItem("nickname");
 if(!nickname){nickname=prompt("Choose your nickname:")||"Anonymous";localStorage.setItem("nickname",nickname);}
 let changedName=false;
 
-// Admin device rendering logic
+// Admin device count logic
 function renderAdmin(usersSnap,bansSnap){
   const userList=document.getElementById("userList");
   const banList=document.getElementById("banList");
   const unbanList=document.getElementById("unbanList");
+  if(!userList) return;
   userList.innerHTML=""; banList.innerHTML=""; unbanList.innerHTML="";
   const nicknameMap={};
   const now=Date.now();
